@@ -90,7 +90,7 @@ baseAngles.forEach((base, i) => {
     const mesh = new THREE.Mesh(geo, trunkMat);
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.position.x = trunkRadiusTop - inset;
-    mesh.rotation.x = -Math.PI / 6; // 30° omhoog
+    mesh.rotation.x = -Math.PI / 3; // 30° omhoog
 
     // Groep om de y‐rotatie te centreren
     const group = new THREE.Group();
@@ -107,7 +107,7 @@ baseAngles.forEach((base, i) => {
 // Groene bol als bladerdek bovenop de stam
 
 {
-    const canopyRadius = 2.0;            // groter en breder
+    const canopyRadius = 5.5;            // groter en breder
     const canopySegments = 24;             // iets gladder
     const canopyColor = 0x004d00;       // donkerder groen (bijv. sjabloon: 0x004d00)
 
@@ -118,7 +118,7 @@ baseAngles.forEach((base, i) => {
     // Zet de onderkant van de bol op precies de stamtop
     canopy.position.set(
         0,
-        trunkHeight + canopyRadius,
+        trunkHeight + canopyRadius + 0.55,
         0
     );
     canopy.castShadow = canopy.receiveShadow = true;
