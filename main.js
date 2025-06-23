@@ -25,7 +25,7 @@ controls.enableDamping = true;
 controls.minPolarAngle = 0.1;        // niet volledig onder de horizon (rondkijken)
 controls.maxPolarAngle = Math.PI / 2.1;  // maximaal horizontaal, nooit de grond in
 controls.minDistance = 5;        // minimale afstand tot de boom
-controls.maxDistance = 50;       // maximale zoom-uit afstand
+controls.maxDistance = 30;       // maximale zoom-uit afstand
 
 // Licht
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
