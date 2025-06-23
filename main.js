@@ -1,6 +1,9 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 
+
+
+
 // Stam‐parameters
 const trunkHeight = 6;
 const trunkRadiusTop = 0.8;
@@ -8,12 +11,24 @@ const trunkRadiusBottom = 1.0;
 
 // Renderer & scene
 const canvas = document.querySelector('#three-canvas');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+const renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+    alpha: true
+});
+renderer.setClearColor(0x000000, 0);
+
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+// Voeg deze regel toe om de clear-kleur volledig transparant te maken
+renderer.setClearColor(0x000000, 0);
+
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xe0f7fa);
+scene.background = null;
+renderer.setClearColor(0x000000, 0); // kleur negeert, alpha = 0
 
 // Camera + controls
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -23,8 +38,8 @@ controls.enableDamping = true;
 
 // **Camera‐beperkingen**
 controls.minPolarAngle = 0.1;        // niet volledig onder de horizon (rondkijken)
-controls.maxPolarAngle = Math.PI / 2.1;  // maximaal horizontaal, nooit de grond in
-controls.minDistance = 5;        // minimale afstand tot de boom
+controls.maxPolarAngle = Math.PI / 2.01;  // maximaal horizontaal, nooit de grond in
+controls.minDistance = 8;        // minimale afstand tot de boom
 controls.maxDistance = 30;       // maximale zoom-uit afstand
 
 // Licht
@@ -156,10 +171,12 @@ baseAngles.forEach((base, i) => {
 
 
 // Grondvlak
-const ground = new THREE.Mesh(
-    new THREE.PlaneGeometry(30, 30),
-    new THREE.MeshPhongMaterial({ color: 0x99cc77, side: THREE.DoubleSide })
-);
+const groundSize = 10000;
+const groundColor = 0x044a01;
+const groundGeo = new THREE.PlaneGeometry(groundSize, groundSize);
+const groundMat = new THREE.MeshPhongMaterial({ color: groundColor, side: THREE.DoubleSide });
+const ground = new THREE.Mesh(groundGeo, groundMat);
+
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
@@ -173,5 +190,14 @@ window.addEventListener('resize', () => {
 (function animate() {
     requestAnimationFrame(animate);
     controls.update();
+    ground.position.x = camera.position.x;
+    ground.position.z = camera.position.z;
     renderer.render(scene, camera);
 })();
+
+// Hemisferisch licht voor realistische sky-kleur
+const hemi = new THREE.HemisphereLight(0x87ceeb, 0x555555, 0.6);
+scene.add(hemi);
+
+// Fog voor dieptegevoel
+scene.fog = new THREE.Fog(groundColor, 10, 200);

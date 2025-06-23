@@ -7,7 +7,13 @@ body {
     height: 100%;
     overflow: hidden;
     font-family: sans-serif;
+    background: linear-gradient(to bottom, #87ceeb 0%, #ffffff 100%);
 }
+
+canvas {
+    display: block;
+}
+
 
 #app {
     display: grid;
@@ -42,7 +48,7 @@ h2 {
     grid-column: 2;
     position: relative;
     overflow: hidden;
-    background: #fff;
+    background: transparent;
 }
 
 #canvas-container h1 {
