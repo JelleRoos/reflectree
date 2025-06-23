@@ -1,3 +1,4 @@
+<!-- index.html -->
 <!DOCTYPE html>
 <html lang="nl">
 
@@ -7,15 +8,15 @@
     <title>Reflectree 🌳</title>
     <link rel="stylesheet" href="style.css" />
 
-    <!-- Import map: map ‘three’ én alle ‘three/…’ paden naar jsDelivr -->
     <script type="importmap">
-    {
-      "imports": {
-        "three":  "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js",
-        "three/": "https://cdn.jsdelivr.net/npm/three@0.150.0/"
-      }
+  {
+    "imports": {
+      "three":      "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js",
+      "three/":     "https://cdn.jsdelivr.net/npm/three@0.150.0/",
+      "GLTFLoader": "https://cdn.jsdelivr.net/npm/three@0.150.0/examples/jsm/loaders/GLTFLoader.js"
     }
-    </script>
+  }
+  </script>
 </head>
 
 <body>
@@ -23,10 +24,10 @@
         <!-- Notitiepaneel links -->
         <aside id="notes-panel">
             <h2>Notities</h2>
-            <!-- later vullen we dit dynamisch -->
+            <!-- later dynamisch vullen -->
         </aside>
 
-        <!-- Canvas in het midden -->
+        <!-- Canvas midden -->
         <div id="canvas-container">
             <h1>Reflectree 🌳</h1>
             <canvas id="three-canvas"></canvas>
@@ -35,12 +36,12 @@
         <!-- Toolbox rechts -->
         <aside id="toolbox-panel">
             <h2>Toolbox</h2>
-            <!-- hier komen straks kaart- en media-items -->
+            <!-- Draggable items -->
+            <div class="toolbox-item" draggable="true" data-type="card">Kaart</div>
         </aside>
     </div>
 
-    <!-- … je #app container … -->
-    <script type="module" src="./main.js"></script>
+    <script type="module" src="main.js"></script>
 </body>
 
 </html>
