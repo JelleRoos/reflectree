@@ -100,13 +100,31 @@ baseAngles.forEach((base, i) => {
     group.rotation.y = theta;
     group.position.y = trunkHeight;
 
+    group.renderOrder = 1;
     scene.add(group);
 });
 
+// Groene bol als bladerdek bovenop de stam
 
+{
+    const canopyRadius = 2.0;            // groter en breder
+    const canopySegments = 24;             // iets gladder
+    const canopyColor = 0x004d00;       // donkerder groen (bijv. sjabloon: 0x004d00)
 
+    const canopyGeo = new THREE.SphereGeometry(canopyRadius, canopySegments, canopySegments);
+    const canopyMat = new THREE.MeshPhongMaterial({ color: canopyColor });
+    const canopy = new THREE.Mesh(canopyGeo, canopyMat);
 
-
+    // Zet de onderkant van de bol op precies de stamtop
+    canopy.position.set(
+        0,
+        trunkHeight + canopyRadius,
+        0
+    );
+    canopy.castShadow = canopy.receiveShadow = true;
+    canopy.renderOrder = 0;
+    scene.add(canopy);
+}
 
 // Grondvlak
 const ground = new THREE.Mesh(
