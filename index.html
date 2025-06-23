@@ -9,10 +9,26 @@
 </head>
 
 <body>
-    <h1>Reflectree 🌳</h1>
-    <canvas id="three-canvas"></canvas>
+    <div id="app">
+        <!-- Notitiepaneel links -->
+        <aside id="notes-panel">
+            <h2>Notities</h2>
+            <!-- later vullen we dit dynamisch -->
+        </aside>
 
-    <!-- VOOR ES MODULES: laad main.js als module -->
+        <!-- Canvas in het midden -->
+        <div id="canvas-container">
+            <h1>Reflectree 🌳</h1>
+            <canvas id="three-canvas"></canvas>
+        </div>
+
+        <!-- Toolbox rechts -->
+        <aside id="toolbox-panel">
+            <h2>Toolbox</h2>
+            <!-- hier komen straks kaart- en media-items -->
+        </aside>
+    </div>
+
     <script type="module" src="main.js"></script>
 </body>
 
