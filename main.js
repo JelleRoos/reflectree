@@ -21,6 +21,12 @@ camera.position.set(5, 5, 10);
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 
+// **Camera‐beperkingen**
+controls.minPolarAngle = 0.1;        // niet volledig onder de horizon (rondkijken)
+controls.maxPolarAngle = Math.PI / 2.1;  // maximaal horizontaal, nooit de grond in
+controls.minDistance = 5;        // minimale afstand tot de boom
+controls.maxDistance = 50;       // maximale zoom-uit afstand
+
 // Licht
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
@@ -104,27 +110,50 @@ baseAngles.forEach((base, i) => {
     scene.add(group);
 });
 
-// Groene bol als bladerdek bovenop de stam
-
+// ======= Lathe-gebaseerde, organische bladerbol met afgeronde top =======
 {
-    const canopyRadius = 5.5;            // groter en breder
-    const canopySegments = 24;             // iets gladder
-    const canopyColor = 0x004d00;       // donkerder groen (bijv. sjabloon: 0x004d00)
+    // Instellingen
+    const maxR = 5.5;   // maximale radius van je bladerdek
+    const height = 6.0;   // hoogte van je bladerdek
+    const exp = 1.8;   // exponent <1 => sneller omhoog, >1 => langzamer
+    const step = 0.2;   // stapgrootte in y
 
-    const canopyGeo = new THREE.SphereGeometry(canopyRadius, canopySegments, canopySegments);
-    const canopyMat = new THREE.MeshPhongMaterial({ color: canopyColor });
-    const canopy = new THREE.Mesh(canopyGeo, canopyMat);
+    // 1) Profiellijn met piecewise exponent en zachte apex
+    const points = [];
+    for (let y = 0; y <= height; y += step) {
+        const t = y / height;
+        let base = Math.sin(t * Math.PI);
 
-    // Zet de onderkant van de bol op precies de stamtop
-    canopy.position.set(
-        0,
-        trunkHeight + canopyRadius + 0.55,
-        0
-    );
-    canopy.castShadow = canopy.receiveShadow = true;
-    canopy.renderOrder = 0;
+        if (t > 1) {
+            // Bovenste 15%: zachte sin-interpolatie naar 0
+            const subT = (t - 1) / 0.15;              // van 0..1 over de top-zone
+            base = Math.sin(subT * 0.5 * Math.PI) * base;
+        } else {
+            // Onderste 85%: scherpe exponent-kromming
+            base = Math.pow(base, exp);
+        }
+
+        const r = base * maxR;
+        points.push(new THREE.Vector2(r, y));
+    }
+    // Zorg dat de very top écht op 0 straal uitkomt
+    points.push(new THREE.Vector2(0, height));
+
+    // 2) LatheGeometry maken
+    const geo = new THREE.LatheGeometry(points, 32);
+    const mat = new THREE.MeshPhongMaterial({ color: 0x004d00 });
+    const canopy = new THREE.Mesh(geo, mat);
+
+    // 3) Positioneren op de stamtop
+    canopy.position.set(0, trunkHeight, 0);
+    canopy.castShadow = true;
+    canopy.receiveShadow = true;
+
     scene.add(canopy);
 }
+
+
+
 
 // Grondvlak
 const ground = new THREE.Mesh(
