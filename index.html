@@ -6,6 +6,16 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Reflectree 🌳</title>
     <link rel="stylesheet" href="style.css" />
+
+    <!-- Import map: map ‘three’ én alle ‘three/…’ paden naar jsDelivr -->
+    <script type="importmap">
+    {
+      "imports": {
+        "three":  "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.150.0/"
+      }
+    }
+    </script>
 </head>
 
 <body>
@@ -29,7 +39,8 @@
         </aside>
     </div>
 
-    <script type="module" src="main.js"></script>
+    <!-- … je #app container … -->
+    <script type="module" src="./main.js"></script>
 </body>
 
 </html>
