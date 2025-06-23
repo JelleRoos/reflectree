@@ -35,25 +35,33 @@ const trunk = new THREE.Mesh(trunkGeo, trunkMat);
 trunk.castShadow = trunk.receiveShadow = true;
 scene.add(trunk);
 
-// Test-wortel: horizontaal in de grond, dikke kant tegen stam
-{
+// Wortels (4) vanuit hart stam
+[0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach(angle => {
     const length = 3.5;
-    const radiusTop = trunkRadiusBottom * 0.9; // iets dunner
+    const radiusTop = trunkRadiusBottom * 0.9;
     const radiusBottom = 0.12;
+    const inset = 0.6;
+
+    // 1) Cylinder
     const geo = new THREE.CylinderGeometry(radiusBottom, radiusTop, length, 8);
     geo.translate(0, length / 2, 0);
-    const mesh = new THREE.Mesh(geo, new THREE.MeshPhongMaterial({ color: 0x8b4513 }));
+
+    // 2) Mesh
+    const mesh = new THREE.Mesh(geo, trunkMat);
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.rotation.z = -Math.PI / 2;
 
+    // 3) Mesh gedeeltelijk uit stam schuiven
+    mesh.position.x = trunkRadiusBottom - inset;
+
+    // 4) Groep rotatie
     const group = new THREE.Group();
     group.add(mesh);
+    group.rotation.y = angle;
 
-    const inset = 0.6;
-    group.position.set(trunkRadiusBottom - inset, 0, 0);
-
+    // 5) Voeg toe aan scene
     scene.add(group);
-}
+});
 
 
 
