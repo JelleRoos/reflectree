@@ -63,6 +63,37 @@ scene.add(trunk);
     scene.add(group);
 });
 
+// Takken (4) vanuit hart stam, schuin omhoog
+[0, Math.PI / 2, Math.PI, -Math.PI / 2].forEach(angle => {
+    const length = 5;
+    const wide = trunkRadiusTop * 0.9;
+    const narrow = 0.15;
+    const inset = 0.6;
+
+    // Swap hier de radii:
+    const geo = new THREE.CylinderGeometry(
+        narrow,   // radiusTop  -> tip bovenaan
+        wide,     // radiusBottom -> basis onderaan
+        length,
+        12
+    );
+    geo.translate(0, length / 2, 0);
+
+    const mesh = new THREE.Mesh(geo, trunkMat);
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.position.x = trunkRadiusTop - inset;
+    mesh.rotation.x = -Math.PI / 6;
+
+    const group = new THREE.Group();
+    group.add(mesh);
+    group.rotation.y = angle;
+    group.position.y = trunkHeight;
+
+    scene.add(group);
+});
+
+
+
 
 
 // Grondvlak
