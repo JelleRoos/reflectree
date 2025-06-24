@@ -201,3 +201,147 @@ scene.add(hemi);
 
 // Fog voor dieptegevoel
 scene.fog = new THREE.Fog(groundColor, 10, 200);
+
+// === Kaartfunctionaliteit ===
+
+// Unieke ID generator voor kaarten
+let kaartCounter = 0;
+
+// Referenties
+const cardsOverlay = document.getElementById('cards-overlay');
+const addCardBtn = document.getElementById('add-card-btn');
+
+// Kaarten array (voor later: export/import)
+const kaarten = [];
+
+// Voeg nieuwe kaart toe als je op de knop drukt
+addCardBtn.addEventListener('click', () => {
+    maakNieuweKaart({
+        x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
+        y: window.innerHeight / 2 + (Math.random() - 0.5) * 100,
+        icon: '🌱', // Placeholder icoontje (later te kiezen)
+        text: 'Nieuwe notitie...'
+    });
+});
+
+// Kaart toevoegen aan DOM en intern registeren
+function maakNieuweKaart({ x, y, icon, text }) {
+    const id = 'kaart-' + (++kaartCounter);
+
+    // Kaart-element maken
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.left = `${x}px`;
+    card.style.top = `${y}px`;
+    card.setAttribute('data-id', id);
+
+    // Verwijderknop
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'card-delete-btn';
+    deleteBtn.innerHTML = '✖️';
+    deleteBtn.title = 'Verwijderen';
+    deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        // Verwijder uit DOM
+        card.remove();
+        // Verwijder uit kaarten array (optioneel, voor export later)
+        const idx = kaarten.findIndex(k => k.id === id);
+        if (idx !== -1) kaarten.splice(idx, 1);
+    });
+    card.appendChild(deleteBtn);
+
+    // Icon
+    const iconDiv = document.createElement('div');
+    iconDiv.className = 'card-icon';
+    iconDiv.textContent = icon;
+    card.appendChild(iconDiv);
+
+    // Tekst
+    const textDiv = document.createElement('div');
+    textDiv.className = 'card-text';
+    textDiv.textContent = text;
+    // -- NIEUW: klikbaar om te bewerken
+    textDiv.addEventListener('click', function () {
+        // Voorkom meerdere editors
+        if (card.querySelector('textarea')) return;
+
+        // Maak textarea op dezelfde plek
+        const textarea = document.createElement('textarea');
+        textarea.className = 'card-textarea';
+        textarea.value = textDiv.textContent;
+        textarea.rows = 3;
+        textarea.style.width = '95%';
+
+        // Vervang tekstdiv tijdelijk
+        card.replaceChild(textarea, textDiv);
+        textarea.focus();
+
+        // Opslaan & terug naar tekst-div
+        function save() {
+            const newText = textarea.value.trim() || '...';
+            textDiv.textContent = newText;
+            card.replaceChild(textDiv, textarea);
+
+            // Update in kaarten array
+            const id = card.getAttribute('data-id');
+            const kaart = kaarten.find(k => k.id === id);
+            if (kaart) kaart.text = newText;
+        }
+
+        textarea.addEventListener('blur', save);
+        textarea.addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                textarea.blur();
+            }
+        });
+    });
+    card.appendChild(textDiv);
+
+
+    // Voeg toe aan overlay
+    cardsOverlay.appendChild(card);
+
+    // Sla kaart op in array
+    kaarten.push({ id, x, y, icon, text });
+
+    // Maak versleepbaar
+    maakKaartVersleepbaar(card);
+}
+
+
+// Drag & drop voor kaarten
+function maakKaartVersleepbaar(card) {
+    let isDragging = false, offsetX, offsetY;
+
+    card.addEventListener('pointerdown', e => {
+        isDragging = true;
+        card.classList.add('selected');
+        offsetX = e.clientX - card.offsetLeft;
+        offsetY = e.clientY - card.offsetTop;
+        // Zodat je niet tekst selecteert
+        e.preventDefault();
+        document.body.style.userSelect = 'none';
+    });
+
+    window.addEventListener('pointermove', e => {
+        if (!isDragging) return;
+        let x = e.clientX - offsetX;
+        let y = e.clientY - offsetY;
+
+        // Binnen venster houden
+        x = Math.max(0, Math.min(window.innerWidth - card.offsetWidth, x));
+        y = Math.max(0, Math.min(window.innerHeight - card.offsetHeight, y));
+
+        card.style.left = `${x}px`;
+        card.style.top = `${y}px`;
+    });
+
+    window.addEventListener('pointerup', () => {
+        if (!isDragging) return;
+        isDragging = false;
+        card.classList.remove('selected');
+        document.body.style.userSelect = '';
+        // (later: kaartpositie opslaan in kaarten array)
+    });
+}

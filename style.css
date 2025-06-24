@@ -1,4 +1,12 @@
 /* style.css */
+
+@import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap');
+
+html,
+body {
+    font-family: 'Quicksand', Arial, sans-serif;
+}
+
 html,
 body {
     margin: 0;
@@ -91,4 +99,142 @@ h2 {
     cursor: move;
     user-select: none;
     z-index: 20;
+}
+
+#canvas-container {
+    grid-column: 2;
+    position: relative;
+    width: 100vw;
+    height: 100vh;
+    overflow: hidden;
+    background: transparent;
+}
+
+#three-canvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+#cards-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    pointer-events: none;
+    /* Overlay zelf vangt geen events op, kaarten krijgen dit wel */
+    z-index: 10;
+}
+
+/* De kaarten krijgen later zelf pointer-events: auto in hun eigen CSS */
+
+#add-card-btn {
+    position: absolute;
+    top: 24px;
+    right: 32px;
+    z-index: 20;
+    background: #ffe57f;
+    color: #644100;
+    border: none;
+    border-radius: 20px;
+    padding: 12px 20px;
+    font-size: 1rem;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.13);
+    cursor: pointer;
+    transition: background 0.18s;
+    font-weight: bold;
+}
+
+#add-card-btn:hover {
+    background: #ffd740;
+}
+
+.card {
+    position: absolute;
+    min-width: 120px;
+    max-width: 200px;
+    min-height: 90px;
+    background: #fffbea;
+    color: #333;
+    border: 2px solid #eed877;
+    border-radius: 16px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+    padding: 14px 12px 10px 12px;
+    cursor: move;
+    user-select: none;
+    z-index: 30;
+    font-size: 1em;
+    pointer-events: auto;
+    transition: box-shadow 0.15s, transform 0.14s;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.card.selected {
+    box-shadow: 0 8px 24px rgba(68, 160, 112, 0.25);
+    outline: 2px solid #7ecb8f;
+    transform: scale(1.03);
+}
+
+.card .card-icon {
+    font-size: 1.5em;
+    margin-bottom: 6px;
+    align-self: flex-start;
+    /* Later kun je hier een plaatje of svg zetten */
+}
+
+.card-delete-btn {
+    position: absolute;
+    top: 4px;
+    right: 6px;
+    background: none;
+    border: none;
+    font-size: 1.15em;
+    cursor: pointer;
+    color: #ab4636;
+    padding: 2px 6px 2px 6px;
+    border-radius: 4px;
+    transition: background 0.17s;
+    z-index: 50;
+}
+
+.card-delete-btn:hover {
+    background: #ffe0e0;
+}
+
+.card-textarea {
+    font-size: 1em;
+    font-family: inherit;
+    font-weight: normal;
+    color: #333;
+    border-radius: 7px;
+    border: 1.5px solid #eed877;
+    box-shadow: 0 2px 7px rgba(250, 220, 120, 0.10);
+    padding: 6px 9px;
+    background: #fffbea;
+    resize: none;
+    outline: none;
+    margin-bottom: 2px;
+    transition: border 0.13s, box-shadow 0.13s;
+    min-height: 2.2em;
+    padding: 6px 9px;
+    box-sizing: border-box;
+    width: 100%;
+    /* de volgende regel voorkomt te breed worden */
+    max-width: 100%;
+    border: none;
+    /* alleen textarea heeft rand, niet .card-text */
+    background: none;
+    /* alleen textarea heeft background */
+    outline: none;
+    border: 1.5px solid #eed877;
+    background: #fffbea;
+}
+
+.card-textarea:focus {
+    border-color: #7ecb8f;
+    box-shadow: 0 4px 12px rgba(68, 160, 112, 0.12);
+    background: #fffde3;
 }
