@@ -26,6 +26,30 @@
   }
   </script>
 </head>
+<!-- Popup voor kaarttype kiezen -->
+<div id="card-type-popup" class="popup-overlay" style="display:none;">
+    <div class="popup">
+        <h3>Kies een type kaart</h3>
+        <div class="type-grid">
+            <button class="type-btn" data-type="wortel" data-color="#b09e6d" data-icon="🌱">
+                <span class="type-icoon">🌱</span>
+                <span>Wortel</span>
+            </button>
+            <button class="type-btn" data-type="stam" data-color="#8d674a" data-icon="🌳">
+                <span class="type-icoon">🌳</span>
+                <span>Stam</span>
+            </button>
+            <button class="type-btn" data-type="tak" data-color="#7ecb8f" data-icon="🌿">
+                <span class="type-icoon">🌿</span>
+                <span>Tak</span>
+            </button>
+            <button class="type-btn" data-type="lucht" data-color="#90caf9" data-icon="☁️">
+                <span class="type-icoon">☁️</span>
+                <span>Lucht</span>
+            </button>
+        </div>
+    </div>
+</div>
 
 <body>
     <div id="canvas-container">

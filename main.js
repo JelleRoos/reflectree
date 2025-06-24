@@ -216,16 +216,43 @@ const kaarten = [];
 
 // Voeg nieuwe kaart toe als je op de knop drukt
 addCardBtn.addEventListener('click', () => {
-    maakNieuweKaart({
-        x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
-        y: window.innerHeight / 2 + (Math.random() - 0.5) * 100,
-        icon: '🌱', // Placeholder icoontje (later te kiezen)
-        text: 'Nieuwe notitie...'
+    typePopup.style.display = 'flex'; // Alleen popup openen, géén kaart aanmaken!
+});
+
+// Popup references
+const typePopup = document.getElementById('card-type-popup');
+const typeBtns = typePopup.querySelectorAll('.type-btn');
+
+addCardBtn.addEventListener('click', () => {
+    typePopup.style.display = 'flex'; // Toon popup
+});
+
+// Bij klikken op een type, maak kaart aan met juiste kleur en icoon
+typeBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        typePopup.style.display = 'none';
+        const kaartType = btn.getAttribute('data-type');
+        const kleur = btn.getAttribute('data-color');
+        const icoon = btn.getAttribute('data-icon');
+        maakNieuweKaart({
+            x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
+            y: window.innerHeight / 2 + (Math.random() - 0.5) * 100,
+            icon: icoon,
+            text: 'Nieuwe notitie...',
+            kleur: kleur,
+            type: kaartType
+        });
     });
 });
 
+// Popup sluiten bij klik buiten popup
+typePopup.addEventListener('click', e => {
+    if (e.target === typePopup) typePopup.style.display = 'none';
+});
+
+
 // Kaart toevoegen aan DOM en intern registeren
-function maakNieuweKaart({ x, y, icon, text }) {
+function maakNieuweKaart({ x, y, icon, text, kleur = '#fffbea', type = 'lucht' }) {
     const id = 'kaart-' + (++kaartCounter);
 
     // Kaart-element maken
@@ -233,7 +260,9 @@ function maakNieuweKaart({ x, y, icon, text }) {
     card.className = 'card';
     card.style.left = `${x}px`;
     card.style.top = `${y}px`;
+    card.style.background = kleur;
     card.setAttribute('data-id', id);
+    card.setAttribute('data-type', type);
 
     // Verwijderknop
     const deleteBtn = document.createElement('button');
