@@ -152,89 +152,97 @@ h2 {
 
 .card {
     position: absolute;
-    min-width: 120px;
-    max-width: 200px;
-    min-height: 90px;
+    min-width: 180px;
+    max-width: 340px;
+    /* Haal min-height flink omlaag voor compactheid */
+    min-height: 64px;
     background: #fffbea;
     color: #333;
-    border: 2px solid #eed877;
-    border-radius: 16px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
-    padding: 14px 12px 10px 12px;
+    border: 2.5px solid #eed877;
+    border-radius: 18px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.13);
+    /* Meer ruimte boven voor het kruisje */
+    padding: 28px 22px 18px 56px;
     cursor: move;
     user-select: none;
     z-index: 30;
-    font-size: 1em;
+    font-size: 1.14em;
     pointer-events: auto;
-    transition: box-shadow 0.15s, transform 0.14s;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
+    transition: box-shadow 0.14s, transform 0.13s;
+    display: block;
+    width: auto;
+    word-break: break-word;
+    box-sizing: border-box;
 }
 
 .card.selected {
-    box-shadow: 0 8px 24px rgba(68, 160, 112, 0.25);
-    outline: 2px solid #7ecb8f;
+    box-shadow: 0 10px 34px rgba(68, 160, 112, 0.18);
+    outline: 2.5px solid #7ecb8f;
     transform: scale(1.03);
 }
 
+/* Icoon netjes linksboven houden */
 .card .card-icon {
-    font-size: 1.5em;
-    margin-bottom: 6px;
-    align-self: flex-start;
-    /* Later kun je hier een plaatje of svg zetten */
-}
-
-.card-delete-btn {
     position: absolute;
-    top: 4px;
-    right: 6px;
-    background: none;
-    border: none;
-    font-size: 1.15em;
-    cursor: pointer;
-    color: #ab4636;
-    padding: 2px 6px 2px 6px;
-    border-radius: 4px;
-    transition: background 0.17s;
-    z-index: 50;
+    top: 17px;
+    left: 18px;
+    font-size: 2em;
+    margin-right: 0.5em;
+    align-self: flex-start;
+    pointer-events: none;
 }
 
-.card-delete-btn:hover {
-    background: #ffe0e0;
+/* Tekst mooi uitgelijnd */
+.card-text,
+.card-textarea {
+    padding: 0;
+    margin: 0;
+    border: none;
+    background: none;
+    outline: none;
+    font-size: 1em;
+    font-family: inherit;
+    color: #333;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 2.3em;
+    margin-left: 0;
+    /* Gebruik white-space: pre-line voor enters */
+    white-space: pre-line;
 }
 
 .card-textarea {
-    font-size: 1em;
-    font-family: inherit;
-    font-weight: normal;
-    color: #333;
-    border-radius: 7px;
+    padding: 3px 0 3px 0;
+    background: #fffde3;
     border: 1.5px solid #eed877;
+    border-radius: 6px;
     box-shadow: 0 2px 7px rgba(250, 220, 120, 0.10);
-    padding: 6px 9px;
-    background: #fffbea;
     resize: none;
-    outline: none;
     margin-bottom: 2px;
     transition: border 0.13s, box-shadow 0.13s;
-    min-height: 2.2em;
-    padding: 6px 9px;
-    box-sizing: border-box;
-    width: 100%;
-    /* de volgende regel voorkomt te breed worden */
-    max-width: 100%;
-    border: none;
-    /* alleen textarea heeft rand, niet .card-text */
-    background: none;
-    /* alleen textarea heeft background */
-    outline: none;
-    border: 1.5px solid #eed877;
-    background: #fffbea;
 }
 
 .card-textarea:focus {
     border-color: #7ecb8f;
     box-shadow: 0 4px 12px rgba(68, 160, 112, 0.12);
-    background: #fffde3;
+}
+
+.card-delete-btn {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    background: none;
+    border: none;
+    font-size: 1.17em;
+    cursor: pointer;
+    color: #ab4636;
+    padding: 2px 5px 2px 5px;
+    border-radius: 4px;
+    transition: background 0.17s;
+    z-index: 51;
+    /* Kleinere font-size en meer ruimte naar binnen */
+}
+
+.card-delete-btn:hover {
+    background: #ffe0e0;
 }
