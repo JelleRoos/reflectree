@@ -26,6 +26,44 @@
   }
   </script>
 </head>
+
+<!-- Popup om kaart te bewerken -->
+<div id="card-edit-popup" class="popup-overlay" style="display:none;">
+    <div class="popup">
+        <h3>Kaart bewerken</h3>
+        <form id="card-edit-form" autocomplete="off">
+            <label>
+                Tekst:<br>
+                <textarea id="edit-card-text" rows="3" style="width:100%;"></textarea>
+            </label>
+            <br>
+            <label>
+                Afbeelding uploaden:
+                <input id="edit-card-img-upload" type="file" accept="image/*">
+            </label>
+            <button type="button" id="remove-card-img-btn" style="margin: 6px 0 10px 0; display:none;">
+                Afbeelding verwijderen
+            </button>
+            <button type="button" id="remove-card-img-btn" style="margin: 6px 0 10px 0; display:none;">
+                Afbeelding verwijderen
+            </button>
+            <label>
+                YouTube-link:<br>
+                <input id="edit-card-yt" type="url" style="width:100%;"
+                    placeholder="https://www.youtube.com/watch?v=...">
+            </label>
+            <br>
+            <button type="submit" class="popup-btn" style="margin-right:12px;">Opslaan</button>
+            <button type="button" id="edit-cancel-btn" class="popup-btn">Annuleren</button>
+            <button type="button" id="remove-card-img-btn" class="popup-btn"
+                style="margin: 6px 0 10px 0; display:none;">
+                Afbeelding verwijderen
+            </button>
+        </form>
+    </div>
+</div>
+
+
 <!-- Popup voor kaarttype kiezen -->
 <div id="card-type-popup" class="popup-overlay" style="display:none;">
     <div class="popup">

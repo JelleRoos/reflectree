@@ -252,6 +252,18 @@ typePopup.addEventListener('click', e => {
 
 
 // Kaart toevoegen aan DOM en intern registeren
+// Helper: check of een hexkleur donker is
+function isDarkColor(hex) {
+    if (!hex) return false;
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
+    const r = parseInt(hex.substr(0, 2), 16);
+    const g = parseInt(hex.substr(2, 2), 16);
+    const b = parseInt(hex.substr(4, 2), 16);
+    return ((r * 299) + (g * 587) + (b * 114)) / 1000 < 160;
+}
+
+
 function maakNieuweKaart({ x, y, icon, text, kleur = '#fffbea', type = 'lucht' }) {
     const id = 'kaart-' + (++kaartCounter);
 
@@ -286,32 +298,43 @@ function maakNieuweKaart({ x, y, icon, text, kleur = '#fffbea', type = 'lucht' }
     card.appendChild(iconDiv);
 
     // Tekst
+    // Tekst
     const textDiv = document.createElement('div');
     textDiv.className = 'card-text';
     textDiv.textContent = text;
-    // -- NIEUW: klikbaar om te bewerken
+
+    // Voeg lichte tekst toe als nodig
+    if (isDarkColor(kleur)) {
+        textDiv.classList.add('light-text');
+    }
+
     textDiv.addEventListener('click', function () {
-        // Voorkom meerdere editors
         if (card.querySelector('textarea')) return;
 
-        // Maak textarea op dezelfde plek
         const textarea = document.createElement('textarea');
         textarea.className = 'card-textarea';
         textarea.value = textDiv.textContent;
         textarea.rows = 3;
         textarea.style.width = '95%';
 
-        // Vervang tekstdiv tijdelijk
+        // Achtergrond en tekstkleur overnemen van kaart
+        const kaartKleur = card.style.background;
+        textarea.style.background = kaartKleur || "#fffbea";
+        if (isDarkColor(kaartKleur)) {
+            textarea.classList.add('light-text');
+            textarea.style.color = "#fffbea";
+        } else {
+            textarea.classList.remove('light-text');
+            textarea.style.color = "#333";
+        }
+
         card.replaceChild(textarea, textDiv);
         textarea.focus();
 
-        // Opslaan & terug naar tekst-div
         function save() {
             const newText = textarea.value.trim() || '...';
             textDiv.textContent = newText;
             card.replaceChild(textDiv, textarea);
-
-            // Update in kaarten array
             const id = card.getAttribute('data-id');
             const kaart = kaarten.find(k => k.id === id);
             if (kaart) kaart.text = newText;
@@ -325,14 +348,17 @@ function maakNieuweKaart({ x, y, icon, text, kleur = '#fffbea', type = 'lucht' }
             }
         });
     });
+
+
     card.appendChild(textDiv);
+
 
 
     // Voeg toe aan overlay
     cardsOverlay.appendChild(card);
 
     // Sla kaart op in array
-    kaarten.push({ id, x, y, icon, text });
+    kaarten.push({ id, x, y, icon, text, imgUrl: '', ytUrl: '' });
 
     // Maak versleepbaar
     maakKaartVersleepbaar(card);
@@ -374,3 +400,153 @@ function maakKaartVersleepbaar(card) {
         // (later: kaartpositie opslaan in kaarten array)
     });
 }
+
+// ===== BEWERK-POPUP =====
+const editPopup = document.getElementById('card-edit-popup');
+const editForm = document.getElementById('card-edit-form');
+const editText = document.getElementById('edit-card-text');
+const editImgUpload = document.getElementById('edit-card-img-upload');
+const editYT = document.getElementById('edit-card-yt');
+const editCancelBtn = document.getElementById('edit-cancel-btn');
+const removeImgBtn = document.getElementById('remove-card-img-btn');
+
+let cardBeingEdited = null;
+let uploadedImgData = null;
+
+// Dubbelklik op kaart opent bewerk-popup
+cardsOverlay.addEventListener('dblclick', function (e) {
+    const card = e.target.closest('.card');
+    if (!card) return;
+    e.preventDefault();
+    openEditPopup(card);
+});
+
+function openEditPopup(card) {
+    // Vind bijbehorende kaart-data
+    const id = card.getAttribute('data-id');
+    const kaart = kaarten.find(k => k.id === id);
+    if (!kaart) return;
+    cardBeingEdited = card;
+
+    editText.value = kaart.text || '';
+    editYT.value = kaart.ytUrl || '';
+    editImgUpload.value = '';
+    uploadedImgData = kaart.imgUrl && kaart.imgUrl.startsWith('data:') ? kaart.imgUrl : null;
+
+    // Toon verwijderknop alleen als er een afbeelding is
+    removeImgBtn.style.display = uploadedImgData ? "inline-block" : "none";
+
+    editPopup.style.display = 'flex';
+    setTimeout(() => editText.focus(), 10);
+}
+
+// Luister naar upload input
+editImgUpload.addEventListener('change', function () {
+    const file = editImgUpload.files[0];
+    if (file && file.type.startsWith('image/')) {
+        const reader = new FileReader();
+        reader.onload = function (evt) {
+            uploadedImgData = evt.target.result;
+            removeImgBtn.style.display = "inline-block";
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Afbeelding verwijderen knop
+removeImgBtn.addEventListener('click', function () {
+    uploadedImgData = null;
+    editImgUpload.value = '';
+    // Sla ook meteen visueel op bij het bewerken (optioneel, of bij opslaan)
+    removeImgBtn.style.display = "none";
+});
+
+// Popup sluiten
+editCancelBtn.onclick = () => {
+    editPopup.style.display = 'none';
+    cardBeingEdited = null;
+    uploadedImgData = null;
+    removeImgBtn.style.display = "none";
+};
+
+// Opslaan en toepassen
+editForm.onsubmit = function (e) {
+    e.preventDefault();
+    if (!cardBeingEdited) return;
+    const id = cardBeingEdited.getAttribute('data-id');
+    const kaart = kaarten.find(k => k.id === id);
+    if (!kaart) return;
+
+    // Tekst updaten
+    const newText = editText.value.trim();
+    kaart.text = newText;
+    cardBeingEdited.querySelector('.card-text').textContent = newText;
+
+    // Alleen upload-afbeelding!
+    kaart.imgUrl = uploadedImgData || '';
+    updateCardImage(cardBeingEdited, kaart.imgUrl);
+
+    // YouTube updaten
+    const ytUrl = editYT.value.trim();
+    kaart.ytUrl = ytUrl;
+    updateCardYouTube(cardBeingEdited, ytUrl);
+
+    editPopup.style.display = 'none';
+    cardBeingEdited = null;
+    uploadedImgData = null;
+    removeImgBtn.style.display = "none";
+};
+
+// Kaart-UI helper: afbeelding tonen/verbergen
+function updateCardImage(card, imgUrl) {
+    let img = card.querySelector('.card-img');
+    if (imgUrl) {
+        if (!img) {
+            img = document.createElement('img');
+            img.className = 'card-img';
+            img.style.maxWidth = '95%';
+            img.style.maxHeight = '120px';
+            img.style.display = 'block';
+            img.style.margin = '7px auto 7px auto';
+            card.insertBefore(img, card.querySelector('.card-text'));
+        }
+        img.src = imgUrl;
+        img.style.display = '';
+    } else if (img) {
+        img.style.display = 'none';
+    }
+}
+
+// Kaart-UI helper: YouTube tonen/verbergen
+function updateCardYouTube(card, ytUrl) {
+    let yt = card.querySelector('.card-yt');
+    function getYTId(url) {
+        const reg = /(?:youtu\.be\/|youtube\.com.*(?:v=|embed\/))([\w-]{11})/;
+        const match = url.match(reg);
+        return match ? match[1] : null;
+    }
+    const id = getYTId(ytUrl);
+
+    if (id) {
+        if (!yt) {
+            yt = document.createElement('iframe');
+            yt.className = 'card-yt';
+            yt.width = "100%";
+            yt.height = "180";
+            yt.frameBorder = "0";
+            yt.allow = "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+            yt.allowFullscreen = true;
+            const img = card.querySelector('.card-img');
+            if (img && img.style.display !== 'none') {
+                card.insertBefore(yt, img.nextSibling);
+            } else {
+                card.insertBefore(yt, card.querySelector('.card-text'));
+            }
+        }
+        yt.src = `https://www.youtube.com/embed/${id}`;
+        yt.style.display = '';
+    } else if (yt) {
+        yt.style.display = 'none';
+    }
+}
+
