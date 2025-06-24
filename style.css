@@ -194,21 +194,31 @@ h2 {
 
 /* Tekst mooi uitgelijnd */
 .card-text,
+/* Inline editing in de kaart: geen eigen styling meer, alles overgenomen van de kaart zelf */
 .card-textarea {
-    padding: 0;
-    margin: 0;
-    border: none;
-    background: none;
-    outline: none;
-    font-size: 1em;
-    font-family: inherit;
-    color: #333;
+    background: inherit !important;
+    /* precies dezelfde achtergrondkleur als de kaart */
+    color: inherit !important;
+    /* dezelfde tekstkleur als de kaart (licht of donker) */
+    border: none !important;
+    /* geen rand */
+    outline: none !important;
+    /* geen focus‐outline */
+    box-shadow: none !important;
+    /* geen schaduw */
+    resize: none;
+    /* geen resize‐hoekje */
     width: 100%;
     box-sizing: border-box;
+    padding: 0;
+    /* padding al in de kaart‐padding opgenomen */
+    margin: 0;
     min-height: 2.3em;
-    margin-left: 0;
-    /* Gebruik white-space: pre-line voor enters */
     white-space: pre-line;
+    font-family: inherit;
+    font-size: 1em;
+}
+
 }
 
 .card-textarea {
@@ -229,23 +239,56 @@ h2 {
 
 .card-delete-btn {
     position: absolute;
-    top: 6px;
-    right: 10px;
+    top: 8px;
+    /* iets lager zodat hij niet “plakt” aan de rand */
+    right: 13px;
+    /* iets meer naar binnen */
     background: none;
     border: none;
-    font-size: 1.17em;
+    font-size: 1.11em;
     cursor: pointer;
     color: #ab4636;
-    padding: 2px 5px 2px 5px;
-    border-radius: 4px;
-    transition: background 0.17s;
+    padding: 1.5px 3.5px 1.5px 3.5px;
+    /* kleiner, subtieler */
+    border-radius: 2.5px;
+    transition: background 0.17s, box-shadow 0.13s;
     z-index: 51;
-    /* Kleinere font-size en meer ruimte naar binnen */
+    line-height: 1.12;
+    min-width: 0;
+    min-height: 0;
+    box-sizing: content-box;
 }
 
-.card-delete-btn:hover {
+.card-delete-btn:hover,
+.card-delete-btn:focus {
     background: #ffe0e0;
+    box-shadow: 0 1px 4px #d7baba4a;
 }
+
+
+.card-img {
+    display: block;
+    max-width: 95%;
+    max-height: 120px;
+    margin: 7px auto 7px auto;
+    border-radius: 9px;
+    box-shadow: 0 1px 9px rgba(150, 150, 80, 0.08);
+    object-fit: contain;
+}
+
+.card-yt {
+    display: block;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    border-radius: 8px;
+    margin: 4px auto 7px auto;
+    box-shadow: 0 2px 8px rgba(50, 70, 110, 0.13);
+    background: #111;
+    min-height: 100px;
+    /* fallback voor oude browsers */
+    max-height: 260px;
+}
+
 
 .popup-overlay {
     position: fixed;
@@ -277,6 +320,76 @@ h2 {
     margin-bottom: 18px;
     font-size: 1.14em;
 }
+
+.popup textarea,
+.popup input[type="url"] {
+    font-size: 1em;
+    font-family: inherit;
+    padding: 7px 8px;
+    margin-bottom: 3px;
+    border-radius: 6px;
+    border: 1.5px solid #eed877;
+    background: #fffde3;
+    box-sizing: border-box;
+    width: 100%;
+    resize: vertical;
+}
+
+.popup-btn {
+    background: #ffe57f;
+    color: #644100;
+    border: none;
+    border-radius: 11px;
+    padding: 9px 19px;
+    font-size: 1em;
+    box-shadow: 0 3px 8px rgba(110, 160, 130, 0.08);
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 3px 7px 3px 0;
+    transition: background 0.17s, box-shadow 0.13s;
+    outline: none;
+    display: inline-block;
+}
+
+.popup-btn {
+    background: #ffe57f;
+    color: #644100;
+    border: none;
+    border-radius: 11px;
+    padding: 9px 19px;
+    font-size: 1em;
+    box-shadow: 0 3px 8px rgba(110, 160, 130, 0.08);
+    font-family: inherit;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 3px 7px 3px 0;
+    transition: background 0.17s, box-shadow 0.13s;
+    outline: none;
+    display: inline-block;
+}
+
+.popup-btn:hover,
+.popup-btn:focus {
+    background: #ffd740;
+    box-shadow: 0 5px 13px rgba(110, 160, 130, 0.13);
+}
+
+.light-text,
+.card-text.light-text,
+.card-textarea.light-text {
+    color: #fffbea !important;
+    text-shadow: 0 1px 3px #6a4b23, 0 0px 6px #54411c29;
+}
+
+.popup label {
+    display: block;
+    margin-bottom: 9px;
+    color: #684d1a;
+    font-size: 0.98em;
+    text-align: left;
+}
+
 
 .type-grid {
     display: flex;
