@@ -194,28 +194,31 @@ h2 {
 
 /* Tekst mooi uitgelijnd */
 .card-text,
+/* Inline editing in de kaart: geen eigen styling meer, alles overgenomen van de kaart zelf */
 .card-textarea {
-    padding: 3px 0 3px 0;
+    background: inherit !important;
+    /* precies dezelfde achtergrondkleur als de kaart */
+    color: inherit !important;
+    /* dezelfde tekstkleur als de kaart (licht of donker) */
     border: none !important;
     /* geen rand */
     outline: none !important;
-    /* geen outline bij focus */
-    background: inherit;
-    /* neemt kleur uit JS */
-    border-radius: 6px;
+    /* geen focus‐outline */
     box-shadow: none !important;
     /* geen schaduw */
     resize: none;
-    margin-bottom: 2px;
-    font-size: 1em;
-    font-family: inherit;
+    /* geen resize‐hoekje */
     width: 100%;
     box-sizing: border-box;
+    padding: 0;
+    /* padding al in de kaart‐padding opgenomen */
+    margin: 0;
     min-height: 2.3em;
     white-space: pre-line;
-    color: inherit;
-    /* kleur uit JS */
-    transition: background 0.13s;
+    font-family: inherit;
+    font-size: 1em;
+}
+
 }
 
 .card-textarea {

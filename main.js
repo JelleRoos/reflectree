@@ -308,46 +308,50 @@ function maakNieuweKaart({ x, y, icon, text, kleur = '#fffbea', type = 'lucht' }
         textDiv.classList.add('light-text');
     }
 
+    // Inline bewerken van de kaarttekst
     textDiv.addEventListener('click', function () {
+        // Niet meer dan één textarea tegelijk
         if (card.querySelector('textarea')) return;
 
+        // Maak de textarea aan
         const textarea = document.createElement('textarea');
         textarea.className = 'card-textarea';
         textarea.value = textDiv.textContent;
         textarea.rows = 3;
         textarea.style.width = '95%';
 
-        // Achtergrond en tekstkleur overnemen van kaart
+        // Achtergrondkleur van de kaart overnemen
         const kaartKleur = card.style.background;
         textarea.style.background = kaartKleur || "#fffbea";
-        if (isDarkColor(kaartKleur)) {
-            textarea.classList.add('light-text');
-            textarea.style.color = "#fffbea";
-        } else {
-            textarea.classList.remove('light-text');
-            textarea.style.color = "#333";
-        }
 
+        // Tekstkleur exact overnemen van de kaarttekst
+        textarea.style.color = getComputedStyle(textDiv).color;
+
+        // Vervang de div door de textarea
         card.replaceChild(textarea, textDiv);
         textarea.focus();
 
+        // Functie om op te slaan en terug te wisselen
         function save() {
             const newText = textarea.value.trim() || '...';
             textDiv.textContent = newText;
             card.replaceChild(textDiv, textarea);
-            const id = card.getAttribute('data-id');
-            const kaart = kaarten.find(k => k.id === id);
-            if (kaart) kaart.text = newText;
+            // Update in je kaarten-array
+            const kaartId = card.getAttribute('data-id');
+            const kaartObj = kaarten.find(k => k.id === kaartId);
+            if (kaartObj) kaartObj.text = newText;
         }
 
+        // Opslaan bij blur of Enter (zonder shift)
         textarea.addEventListener('blur', save);
-        textarea.addEventListener('keydown', e => {
+        textarea.addEventListener('keydown', function (e) {
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 textarea.blur();
             }
         });
     });
+
 
 
     card.appendChild(textDiv);
