@@ -51,7 +51,7 @@ scene.add(dirLight);
 // Stam
 const trunkGeo = new THREE.CylinderGeometry(trunkRadiusTop, trunkRadiusBottom, trunkHeight, 16);
 trunkGeo.translate(0, trunkHeight / 2, 0);
-const trunkMat = new THREE.MeshPhongMaterial({ color: 0x8b5a2b });
+const trunkMat = new THREE.MeshPhongMaterial({ color: 0x4d2f14 });
 const trunk = new THREE.Mesh(trunkGeo, trunkMat);
 trunk.castShadow = trunk.receiveShadow = true;
 scene.add(trunk);
