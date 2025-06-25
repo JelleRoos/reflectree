@@ -251,6 +251,35 @@ typePopup.addEventListener('click', e => {
 });
 
 
+/**
+ * Retourneert de juiste tekstkleur (licht of donker) op basis van de achtergrond
+ */
+function getComputedTextColor(bgHex) {
+    // Hergebruik je bestaande isDarkColor-helper
+    return isDarkColor(bgHex) ? '#fffbea' : '#333';
+}
+
+/**
+ * Simpele word-wrap helper: splitst text op in regels die ≤ maxWidth zijn
+ */
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach(w => {
+        const testLine = line ? line + ' ' + w : w;
+        if (ctx.measureText(testLine).width > maxWidth) {
+            lines.push(line);
+            line = w;
+        } else {
+            line = testLine;
+        }
+    });
+    if (line) lines.push(line);
+    return lines;
+}
+
+
 // Kaart toevoegen aan DOM en intern registeren
 // Helper: check of een hexkleur donker is
 function isDarkColor(hex) {
@@ -553,4 +582,108 @@ function updateCardYouTube(card, ytUrl) {
         yt.style.display = 'none';
     }
 }
+
+// … héél je bestaande code blijft hier staan (DOM, 2D-kaarten, popups, etc.)
+
+// ───────────────────────────────────────────────
+// 3D-helpers (nieuw, helemaal los aan het eind)
+// ───────────────────────────────────────────────
+
+/**
+ * Maakt een CanvasTexture voor een kaartje
+ * @param {{ text: string, icon: string, color: string, width: number, height: number }} opts
+ * @returns {THREE.CanvasTexture}
+ */
+/**
+ * CanvasTexture-helper
+ */
+function makeCardTexture({ text, icon, color, width, height }) {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    // achtergrond
+    ctx.fillStyle = color;
+    ctx.fillRect(0, 0, width, height);
+
+    // icoon
+    ctx.font = `24px Quicksand`;
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = getComputedTextColor(color);
+    ctx.fillText(icon, 12, 12);
+
+    // tekst (wrapped)
+    ctx.font = `16px Quicksand`;
+    const lines = wrapText(ctx, text, width - 24);
+    lines.forEach((line, i) => {
+        ctx.fillText(line, 12, 48 + i * 20);
+    });
+
+    const tex = new THREE.CanvasTexture(canvas);
+    tex.needsUpdate = true;
+    return tex;
+}
+
+/**
+ * Mesh-helper (front & back)
+ */
+function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
+    const geo = new THREE.PlaneGeometry(w, h);
+    const matFront = new THREE.MeshBasicMaterial({
+        map: texture,
+        transparent: true,
+        side: THREE.FrontSide
+    });
+    const matBack = new THREE.MeshBasicMaterial({
+        color: backColor,
+        transparent: false,
+        side: THREE.BackSide
+    });
+    const frontMesh = new THREE.Mesh(geo, matFront);
+    const backMesh = new THREE.Mesh(geo, matBack);
+    frontMesh.add(backMesh);
+    return frontMesh;
+}
+
+// Globale shortcuts voor console-testen
+window.THREE = THREE;
+window.scene = scene;
+window.camera = camera;
+window.renderer = renderer;
+window.controls = controls;
+window.makeCardTexture = makeCardTexture;
+window.makeCardMesh = makeCardMesh;
+
+/**
+ * Stap 2: Mouse-click → kaart plaatsen op boom of grond
+ */
+const raycaster = new THREE.Raycaster();
+const pointer = new THREE.Vector2();
+
+canvas.addEventListener('click', (event) => {
+    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+    raycaster.setFromCamera(pointer, camera);
+    const hits = raycaster.intersectObjects(scene.children, true);
+    if (!hits.length) return;
+
+    const { point, face, object } = hits[0];
+    const normal = face.normal.clone().transformDirection(object.matrixWorld);
+
+    const tex = makeCardTexture({
+        text: 'Nieuwe kaart',
+        icon: '📝',
+        color: '#fffbea',
+        width: 256,
+        height: 128
+    });
+    const mesh = makeCardMesh(tex, '#fffbea', 1.5, 0.8);
+
+    mesh.position.copy(point).add(normal.multiplyScalar(0.01));
+    mesh.lookAt(point.clone().add(normal));
+
+    scene.add(mesh);
+});
 
