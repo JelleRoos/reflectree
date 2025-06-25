@@ -262,6 +262,19 @@ editForm.addEventListener('submit', event => {
     meshBeingEdited = null;
 });
 
+const deleteBtn = document.getElementById('delete-card-btn');
+deleteBtn.addEventListener('click', () => {
+    if (!meshBeingEdited) return;
+    // 1) Verwijder uit scène
+    scene.remove(meshBeingEdited);
+    // 2) Optioneel: verwijder uit je kaarten-array als je die hebt:
+    // kaarten = kaarten.filter(k => k.mesh !== meshBeingEdited);
+    meshBeingEdited = null;
+    // 3) Sluit de popup
+    editPopup.style.display = 'none';
+});
+
+
 function create3DCard({ position, normal, text, icon, color, width = 1.5, height = 0.8 }) {
     const tex = makeCardTexture({ text, icon, color, width: 256, height: 128 });
     const mesh = makeCardMesh(tex, color, width, height);
