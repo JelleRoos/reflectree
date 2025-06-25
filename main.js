@@ -25,8 +25,9 @@ controls.enablePan = true;
 controls.screenSpacePanning = true;
 controls.minPolarAngle = 0.1;
 controls.maxPolarAngle = Math.PI / 2.01;
-controls.minDistance = 8;
-controls.maxDistance = 30;
+// Removed zoom distance limits to allow free zooming
+controls.zoomSpeed = 0.15;  // verlaag zoomsnelheid voor rustigere bediening
+
 
 // Licht
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -209,12 +210,28 @@ canvas.addEventListener('pointerdown', event => {
 
 window.addEventListener('pointermove', event => {
     if (!draggingMesh) return;
+    // update pointer
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const intersection = new THREE.Vector3();
-    if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
-        draggingMesh.position.copy(intersection.sub(dragOffset));
+    // intersect only valid surfaces
+    const hit = raycaster.intersectObjects(scene.children, true)
+        .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
+    if (hit) {
+        // position slightly above surface
+        const normWorld = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+        const newPos = hit.point.clone().add(normWorld.multiplyScalar(0.01));
+        draggingMesh.position.copy(newPos);
+        // orient according to surface normal
+        if (Math.abs(normWorld.y) > 0.9) {
+            // ground-like surface: card upright
+            draggingMesh.up.set(0, 1, 0);
+            const target = new THREE.Vector3(camera.position.x, newPos.y, camera.position.z);
+            draggingMesh.lookAt(target);
+        } else {
+            // tree surface: follow normal
+            draggingMesh.lookAt(newPos.clone().add(normWorld));
+        }
     }
 });
 
