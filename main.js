@@ -313,8 +313,8 @@ editForm.addEventListener('submit', async event => {
         icon: meshBeingEdited.userData.icon,
         color: meshBeingEdited.userData.color,
         imgData: meshBeingEdited.userData.imgData,
-        width: 256,
-        height: 128
+        width: 2048,
+        height: 1024
     });
 
     meshBeingEdited.material.map = newTex;
