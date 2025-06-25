@@ -5,6 +5,10 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 const trunkHeight = 8;
 const trunkRadiusTop = 0.8;
 const trunkRadiusBottom = 1.0;
+const editImgUpload = document.getElementById('edit-card-img-upload');
+const removeImgBtn = document.getElementById('remove-card-img-btn');
+
+
 
 const canvas = document.querySelector('#three-canvas');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -132,22 +136,50 @@ typeBtns.forEach(btn => btn.addEventListener('click', () => {
 }));
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
-function makeCardTexture({ text, icon, color, width, height }) {
+function makeCardTexture({ text, icon, color, imgData, width, height }) {
     const canvas2D = document.createElement('canvas');
     canvas2D.width = width;
     canvas2D.height = height;
     const ctx = canvas2D.getContext('2d');
+
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, width, height);
+
     ctx.font = '24px Quicksand';
     ctx.fillStyle = getComputedTextColor(color);
-    ctx.fillText(icon, 12, 12);
+    ctx.fillText(icon, 12, 30);
+
     ctx.font = '16px Quicksand';
-    wrapText(ctx, text, width - 24).forEach((line, i) => ctx.fillText(line, 12, 48 + i * 20));
+    wrapText(ctx, text, width - 24).forEach((line, i) => {
+        ctx.fillText(line, 12, 60 + i * 20);
+    });
+
+    if (imgData) {
+        const img = new Image();
+        img.src = imgData;
+        img.onload = () => {
+            const aspectRatio = img.width / img.height;
+            let imgWidth = width - 24;
+            let imgHeight = imgWidth / aspectRatio;
+
+            if (imgHeight > height / 2) {
+                imgHeight = height / 2;
+                imgWidth = imgHeight * aspectRatio;
+            }
+
+            const imgX = (width - imgWidth) / 2;
+            const imgY = height - imgHeight - 10;
+            ctx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
+            tex.needsUpdate = true;
+        };
+    }
+
     const tex = new THREE.CanvasTexture(canvas2D);
     tex.needsUpdate = true;
     return tex;
 }
+
+
 function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     const geo = new THREE.PlaneGeometry(w, h);
     const matFront = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.FrontSide });
@@ -246,21 +278,51 @@ canvas.addEventListener('dblclick', event => {
     if (hitEdit) {
         meshBeingEdited = hitEdit.object;
         editText.value = meshBeingEdited.userData.text;
+        editImgUpload.value = null;
+        removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
         editPopup.style.display = 'flex';
     }
 });
 
+
+// Functie om afbeelding uit File naar base64 te converteren
+function getUploadedImgData(file) {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+    });
+}
+
+
 editCancelBtn.addEventListener('click', () => { editPopup.style.display = 'none'; meshBeingEdited = null; });
-editForm.addEventListener('submit', event => {
+editForm.addEventListener('submit', async event => {
     event.preventDefault();
+
     const newText = editText.value.trim() || meshBeingEdited.userData.text;
     meshBeingEdited.userData.text = newText;
-    const newTex = makeCardTexture({ text: newText, icon: meshBeingEdited.userData.icon, color: meshBeingEdited.userData.color, width: 256, height: 128 });
+
+    const imgFile = editImgUpload.files[0];
+    if (imgFile) {
+        meshBeingEdited.userData.imgData = await getUploadedImgData(imgFile);
+    }
+
+    const newTex = makeCardTexture({
+        text: newText,
+        icon: meshBeingEdited.userData.icon,
+        color: meshBeingEdited.userData.color,
+        imgData: meshBeingEdited.userData.imgData,
+        width: 256,
+        height: 128
+    });
+
     meshBeingEdited.material.map = newTex;
     meshBeingEdited.material.needsUpdate = true;
     editPopup.style.display = 'none';
     meshBeingEdited = null;
 });
+
 
 const deleteBtn = document.getElementById('delete-card-btn');
 deleteBtn.addEventListener('click', () => {
@@ -285,12 +347,20 @@ function create3DCard({ position, normal, text, icon, color, width = 1.5, height
     scene.add(mesh);
 }
 
+
 // Animatie loop
 (function animate() {
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
 })();
+
+removeImgBtn.addEventListener('click', () => {
+    meshBeingEdited.userData.imgData = null;
+    editImgUpload.value = null;
+    removeImgBtn.style.display = 'none';
+});
+
 
 // Expose globals
 window.THREE = THREE;
