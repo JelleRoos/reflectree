@@ -54,10 +54,11 @@ scene.add(trunk);
     group.rotation.y = angle;
     scene.add(group);
 });
-// Bladerbol (halve bol + sluitende kap)
+
+// Bladerbol (halve bol + sluitende kap, allebei als 'canopy')
 {
-    const radius = 5.5;     // straal van je bladerdek
-    const segments = 32;    // gladheid van je mesh
+    const radius = 5.5;
+    const segments = 32;
 
     // 1) Halve bol
     const hemiGeo = new THREE.SphereGeometry(
@@ -69,13 +70,13 @@ scene.add(trunk);
         0,
         Math.PI / 2
     );
-    // DOUBLE_SIDE zodat je ook de binnenkant ziet als je er onder kijkt
     const hemiMat = new THREE.MeshPhongMaterial({
         color: 0x004d00,
         side: THREE.DoubleSide
     });
     const hemisphere = new THREE.Mesh(hemiGeo, hemiMat);
     hemisphere.castShadow = hemisphere.receiveShadow = true;
+    hemisphere.userData.surface = 'canopy';
     hemisphere.position.set(0, trunkHeight, 0);
     scene.add(hemisphere);
 
@@ -86,8 +87,10 @@ scene.add(trunk);
         side: THREE.DoubleSide
     });
     const cap = new THREE.Mesh(capGeo, capMat);
-    cap.rotation.x = -Math.PI / 2;          // vlak leggen
-    cap.position.set(0, trunkHeight, 0);    // precies op stamtop
+    cap.castShadow = cap.receiveShadow = true;
+    cap.userData.surface = 'canopy';
+    cap.rotation.x = -Math.PI / 2;
+    cap.position.set(0, trunkHeight, 0);
     scene.add(cap);
 }
 
