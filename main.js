@@ -583,7 +583,6 @@ function updateCardYouTube(card, ytUrl) {
     }
 }
 
-<<<<<<< HEAD
 // … héél je bestaande code blijft hier staan (DOM, 2D-kaarten, popups, etc.)
 
 // ───────────────────────────────────────────────
@@ -687,6 +686,3 @@ canvas.addEventListener('click', (event) => {
 
     scene.add(mesh);
 });
-
-=======
->>>>>>> 415f7851adfc473be3edbfa8ca6afcf4b57ba721
