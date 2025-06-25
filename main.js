@@ -231,19 +231,16 @@ addCardBtn.addEventListener('click', () => {
 typeBtns.forEach(btn => {
     btn.addEventListener('click', () => {
         typePopup.style.display = 'none';
-        const kaartType = btn.getAttribute('data-type');
-        const kleur = btn.getAttribute('data-color');
-        const icoon = btn.getAttribute('data-icon');
-        maakNieuweKaart({
-            x: window.innerWidth / 2 + (Math.random() - 0.5) * 100,
-            y: window.innerHeight / 2 + (Math.random() - 0.5) * 100,
-            icon: icoon,
-            text: 'Nieuwe notitie...',
-            kleur: kleur,
-            type: kaartType
-        });
+        // Bereid de kaart voor, maar plaats hem nog niet:
+        pending3DCard = {
+            text: 'Nieuwe kaart',
+            icon: btn.dataset.icon,
+            color: btn.dataset.color
+        };
+        // (optioneel) geef visuele feedback dat je nu kunt klikken om te plaatsen
     });
 });
+
 
 // Popup sluiten bij klik buiten popup
 typePopup.addEventListener('click', e => {
@@ -594,6 +591,9 @@ function updateCardYouTube(card, ytUrl) {
  * @param {{ text: string, icon: string, color: string, width: number, height: number }} opts
  * @returns {THREE.CanvasTexture}
  */
+
+let pending3DCard = null;
+
 /**
  * CanvasTexture-helper
  */
@@ -662,27 +662,34 @@ const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
 canvas.addEventListener('click', (event) => {
+    // Alleen verder als we écht in plaats-modus zitten
+    if (!pending3DCard) return;
+
+    // … je normalisatie & raycast …
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-
     raycaster.setFromCamera(pointer, camera);
     const hits = raycaster.intersectObjects(scene.children, true);
     if (!hits.length) return;
 
+    // Haal het hit-punt en normale
     const { point, face, object } = hits[0];
     const normal = face.normal.clone().transformDirection(object.matrixWorld);
 
+    // Bouw texture & mesh met de vooraf gekozen data:
+    const { text, icon, color } = pending3DCard;
     const tex = makeCardTexture({
-        text: 'Nieuwe kaart',
-        icon: '📝',
-        color: '#fffbea',
-        width: 256,
-        height: 128
+        text, icon, color,
+        width: 256, height: 128
     });
-    const mesh = makeCardMesh(tex, '#fffbea', 1.5, 0.8);
+    const mesh = makeCardMesh(tex, color, 1.5, 0.8);
 
+    // Positioneer + orienteer
     mesh.position.copy(point).add(normal.multiplyScalar(0.01));
     mesh.lookAt(point.clone().add(normal));
 
+    // Voeg toe én verlaat plaats-modus
     scene.add(mesh);
+    pending3DCard = null;
 });
+
