@@ -17,8 +17,12 @@ scene.background = null;
 
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(5, 5, 10);
+
+// OrbitControls setup
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
+controls.enablePan = true;
+controls.screenSpacePanning = true;
 controls.minPolarAngle = 0.1;
 controls.maxPolarAngle = Math.PI / 2.01;
 controls.minDistance = 8;
@@ -55,37 +59,26 @@ scene.add(trunk);
     scene.add(group);
 });
 
-// Bladerbol (halve bol + sluitende kap, allebei als 'canopy')
+// Bladerbol (halve bol + sluitende kap)
 {
     const radius = 5.5;
     const segments = 32;
-
-    // 1) Halve bol
+    // Halve bol
     const hemiGeo = new THREE.SphereGeometry(
-        radius,
-        segments,
-        segments / 2,
-        0,
-        Math.PI * 2,
-        0,
-        Math.PI / 2
+        radius, segments, segments / 2,
+        0, Math.PI * 2,
+        0, Math.PI / 2
     );
-    const hemiMat = new THREE.MeshPhongMaterial({
-        color: 0x004d00,
-        side: THREE.DoubleSide
-    });
+    const hemiMat = new THREE.MeshPhongMaterial({ color: 0x004d00, side: THREE.DoubleSide });
     const hemisphere = new THREE.Mesh(hemiGeo, hemiMat);
     hemisphere.castShadow = hemisphere.receiveShadow = true;
     hemisphere.userData.surface = 'canopy';
     hemisphere.position.set(0, trunkHeight, 0);
     scene.add(hemisphere);
 
-    // 2) Platte cirkel voor de sluiting
+    // Platte cirkel voor sluiting
     const capGeo = new THREE.CircleGeometry(radius, segments);
-    const capMat = new THREE.MeshPhongMaterial({
-        color: 0x004d00,
-        side: THREE.DoubleSide
-    });
+    const capMat = new THREE.MeshPhongMaterial({ color: 0x004d00, side: THREE.DoubleSide });
     const cap = new THREE.Mesh(capGeo, capMat);
     cap.castShadow = cap.receiveShadow = true;
     cap.userData.surface = 'canopy';
@@ -94,8 +87,7 @@ scene.add(trunk);
     scene.add(cap);
 }
 
-
-// Grondvlak (voor context, niet als surface)
+// Grondvlak
 const ground = new THREE.Mesh(
     new THREE.PlaneGeometry(10000, 10000),
     new THREE.MeshPhongMaterial({ color: 0x044a01, side: THREE.DoubleSide })
@@ -103,6 +95,7 @@ const ground = new THREE.Mesh(
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
+ground.userData.surface = 'ground';
 
 // Fog & Hemisferisch licht
 scene.add(new THREE.HemisphereLight(0x87ceeb, 0x555555, 0.6));
@@ -114,13 +107,8 @@ window.addEventListener('resize', () => {
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
-(function animate() {
-    requestAnimationFrame(animate);
-    controls.update();
-    renderer.render(scene, camera);
-})();
 
-// ======== 3D-Kaart Functionaliteit ========
+// ===== Interactie =====
 let pending3DCard = null;
 let draggingMesh = null;
 const dragPlane = new THREE.Plane();
@@ -128,28 +116,21 @@ const dragOffset = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
-// Pop-up referenties
 const editPopup = document.getElementById('card-edit-popup');
 const editForm = document.getElementById('card-edit-form');
 const editText = document.getElementById('edit-card-text');
 const editCancelBtn = document.getElementById('edit-cancel-btn');
 let meshBeingEdited = null;
 
-// Type-popup
 const typePopup = document.getElementById('card-type-popup');
 const typeBtns = typePopup.querySelectorAll('.type-btn');
 document.getElementById('add-card-btn').addEventListener('click', () => typePopup.style.display = 'flex');
 typeBtns.forEach(btn => btn.addEventListener('click', () => {
     typePopup.style.display = 'none';
-    pending3DCard = {
-        text: 'Nieuwe kaart',
-        icon: btn.dataset.icon,
-        color: btn.dataset.color
-    };
+    pending3DCard = { text: 'Nieuwe kaart', icon: btn.dataset.icon, color: btn.dataset.color };
 }));
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
-// Helpers: texture & mesh
 function makeCardTexture({ text, icon, color, width, height }) {
     const canvas2D = document.createElement('canvas');
     canvas2D.width = width;
@@ -162,7 +143,9 @@ function makeCardTexture({ text, icon, color, width, height }) {
     ctx.fillText(icon, 12, 12);
     ctx.font = '16px Quicksand';
     wrapText(ctx, text, width - 24).forEach((line, i) => ctx.fillText(line, 12, 48 + i * 20));
-    const tex = new THREE.CanvasTexture(canvas2D); tex.needsUpdate = true; return tex;
+    const tex = new THREE.CanvasTexture(canvas2D);
+    tex.needsUpdate = true;
+    return tex;
 }
 function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     const geo = new THREE.PlaneGeometry(w, h);
@@ -176,73 +159,108 @@ function getComputedTextColor(hex) {
     hex = hex.replace('#', '');
     if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
     const [r, g, b] = [hex.substr(0, 2), hex.substr(2, 2), hex.substr(4, 2)].map(h => parseInt(h, 16));
-    return ((r * 299 + g * 587 + b * 114) / 1000 < 160) ? '#fffbea' : '#333';
+    return ((r * 299 + g * 587 + b * 114) / 1000) < 160 ? '#fffbea' : '#333';
 }
 function wrapText(ctx, text, maxWidth) {
     const words = text.split(' '), lines = [];
     let line = '';
     words.forEach(w => {
         const test = line ? line + ' ' + w : w;
-        if (ctx.measureText(test).width > maxWidth) { lines.push(line); line = w; } else line = test;
-    }); if (line) lines.push(line); return lines;
-}
-
-// Maak en plaats kaart
-function create3DCard({ position, normal, text, icon, color, width = 1.5, height = 0.8 }) {
-    const tex = makeCardTexture({ text, icon, color, width: 256, height: 128 });
-    const mesh = makeCardMesh(tex, color, width, height);
-    mesh.castShadow = mesh.receiveShadow = true;
-    mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
-    mesh.lookAt(position.clone().add(normal)); mesh.userData = { text, icon, color };
-    scene.add(mesh);
+        if (ctx.measureText(test).width > maxWidth) {
+            lines.push(line);
+            line = w;
+        } else line = test;
+    });
+    if (line) lines.push(line);
+    return lines;
 }
 
 canvas.addEventListener('pointerdown', event => {
-    if (pending3DCard) {
-        pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-        pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-        raycaster.setFromCamera(pointer, camera);
-        const hits = raycaster.intersectObjects(scene.children, true)
-            .filter(i => ['trunk', 'root', 'canopy'].includes(i.object.userData.surface));
-        if (!hits.length) return;
-        const hit = hits[0];
-        create3DCard({ position: hit.point, normal: hit.face.normal.clone().transformDirection(hit.object.matrixWorld), ...pending3DCard });
-        pending3DCard = null;
-        return;
-    }
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(scene.children, true)
-        .filter(i => typeof i.object.userData.text === 'string');
-    if (hits.length) {
-        draggingMesh = hits[0].object;
-        dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()).negate(), draggingMesh.position);
-        const pt = new THREE.Vector3(); raycaster.ray.intersectPlane(dragPlane, pt); dragOffset.copy(pt).sub(draggingMesh.position);
+
+    if (pending3DCard) {
+        const hit = raycaster.intersectObjects(scene.children, true)
+            .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
+        if (!hit) return;
+        create3DCard({
+            position: hit.point,
+            normal: hit.face.normal.clone().transformDirection(hit.object.matrixWorld),
+            ...pending3DCard
+        });
+        pending3DCard = null;
+        return;
+    }
+
+    const hitDrag = raycaster.intersectObjects(scene.children, true)
+        .find(i => typeof i.object.userData.text === 'string');
+    if (hitDrag) {
+        draggingMesh = hitDrag.object;
+        dragPlane.setFromNormalAndCoplanarPoint(
+            camera.getWorldDirection(new THREE.Vector3()).negate(),
+            draggingMesh.position
+        );
+        const intersection = new THREE.Vector3();
+        raycaster.ray.intersectPlane(dragPlane, intersection);
+        dragOffset.copy(intersection).sub(draggingMesh.position);
     }
 });
+
 window.addEventListener('pointermove', event => {
     if (!draggingMesh) return;
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const pt = new THREE.Vector3(); if (raycaster.ray.intersectPlane(dragPlane, pt)) draggingMesh.position.copy(pt.sub(dragOffset));
+    const intersection = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(dragPlane, intersection)) {
+        draggingMesh.position.copy(intersection.sub(dragOffset));
+    }
 });
+
 canvas.addEventListener('pointerup', () => { draggingMesh = null; });
+
 canvas.addEventListener('dblclick', event => {
     pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
-    const hits = raycaster.intersectObjects(scene.children, true)
-        .filter(i => typeof i.object.userData.text === 'string');
-    if (hits.length) { meshBeingEdited = hits[0].object; editText.value = meshBeingEdited.userData.text; editPopup.style.display = 'flex'; }
+    const hitEdit = raycaster.intersectObjects(scene.children, true)
+        .find(i => typeof i.object.userData.text === 'string');
+    if (hitEdit) {
+        meshBeingEdited = hitEdit.object;
+        editText.value = meshBeingEdited.userData.text;
+        editPopup.style.display = 'flex';
+    }
 });
+
 editCancelBtn.addEventListener('click', () => { editPopup.style.display = 'none'; meshBeingEdited = null; });
 editForm.addEventListener('submit', event => {
-    event.preventDefault(); const nt = editText.value.trim() || meshBeingEdited.userData.text; meshBeingEdited.userData.text = nt;
-    const nt2 = makeCardTexture({ text: nt, icon: meshBeingEdited.userData.icon, color: meshBeingEdited.userData.color, width: 256, height: 128 }); meshBeingEdited.material.map = nt2; meshBeingEdited.material.needsUpdate = true;
-    editPopup.style.display = 'none'; meshBeingEdited = null;
+    event.preventDefault();
+    const newText = editText.value.trim() || meshBeingEdited.userData.text;
+    meshBeingEdited.userData.text = newText;
+    const newTex = makeCardTexture({ text: newText, icon: meshBeingEdited.userData.icon, color: meshBeingEdited.userData.color, width: 256, height: 128 });
+    meshBeingEdited.material.map = newTex;
+    meshBeingEdited.material.needsUpdate = true;
+    editPopup.style.display = 'none';
+    meshBeingEdited = null;
 });
+
+function create3DCard({ position, normal, text, icon, color, width = 1.5, height = 0.8 }) {
+    const tex = makeCardTexture({ text, icon, color, width: 256, height: 128 });
+    const mesh = makeCardMesh(tex, color, width, height);
+    mesh.castShadow = mesh.receiveShadow = true;
+    mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
+    mesh.lookAt(position.clone().add(normal));
+    mesh.userData = { text, icon, color };
+    scene.add(mesh);
+}
+
+// Animatie loop
+(function animate() {
+    requestAnimationFrame(animate);
+    controls.update();
+    renderer.render(scene, camera);
+})();
 
 // Expose globals
 window.THREE = THREE;
