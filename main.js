@@ -589,6 +589,72 @@ document.getElementById('import-input').addEventListener('change', async e => {
     }
 });
 
+function maakAchtergrondBoom3D({
+    x, z,
+    schaal = 0.95,
+    extraHoogte = 0,
+    kleurStam = 0x61402a,
+    kleurBlad = 0x257c3a
+}) {
+    // Minder extreme extra hoogte (max 4 ipv 20)
+    const stamLengte = 5.6 * schaal + extraHoogte;
+    const stamGeo = new THREE.CylinderGeometry(0.15 * schaal, 0.23 * schaal, stamLengte, 10);
+    stamGeo.translate(0, stamLengte / 2, 0);
+    const stamMat = new THREE.MeshPhongMaterial({ color: kleurStam });
+    const stam = new THREE.Mesh(stamGeo, stamMat);
+
+    // Bladbol: onderkant zichtbaar (DoubleSide)
+    const bladGeo = new THREE.SphereGeometry(2.7 * schaal, 20, 13, 0, Math.PI * 2, 0, Math.PI / 1.7);
+    bladGeo.translate(0, stamLengte + 1.8 * schaal, 0);
+    const bladMat = new THREE.MeshPhongMaterial({
+        color: kleurBlad,
+        shininess: 55,
+        side: THREE.DoubleSide // <- onderkant altijd zichtbaar
+    });
+    const blad = new THREE.Mesh(bladGeo, bladMat);
+
+    const boom = new THREE.Group();
+    boom.add(stam);
+    boom.add(blad);
+    boom.position.set(x, 0, z);
+    boom.castShadow = false;
+    boom.receiveShadow = false;
+    scene.add(boom);
+}
+
+const aantalBomen = 700;
+for (let i = 0; i < aantalBomen; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const radius = 60 + Math.random() * 100;
+
+    const x = Math.cos(angle) * radius;
+    const z = Math.sin(angle) * radius;
+
+    if (z > 0 && Math.random() > 0.25) continue;
+
+    const schaal = 0.63 + Math.random() * 0.47;
+    const groeneVariatie = 0x217932 + Math.floor(Math.random() * 0x002600);
+
+    // Nu: max 4 units extra hoogte, meeste bomen 0-2
+    let extraHoogte = 0;
+    if (Math.random() < 0.23) {
+        extraHoogte = 0.5 + Math.random() * 3.5; // tussen 0.5 en 4
+    }
+
+    maakAchtergrondBoom3D({
+        x,
+        z,
+        schaal,
+        extraHoogte,
+        kleurBlad: groeneVariatie
+    });
+}
+
+
+
+
+
+
 
 // Expose globals
 window.THREE = THREE;
