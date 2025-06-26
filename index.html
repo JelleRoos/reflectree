@@ -27,72 +27,64 @@
   </script>
 </head>
 
-<!-- Popup om kaart te bewerken -->
-<div id="card-edit-popup" class="popup-overlay" style="display:none;">
-    <div class="popup">
-        <h3>Kaart bewerken</h3>
-        <form id="card-edit-form" autocomplete="off">
-            <label>
-                Tekst:<br>
-                <textarea id="edit-card-text" rows="3" style="width:100%;"></textarea>
-            </label>
-            <br>
-            <label>
-                Afbeelding uploaden:
-                <input id="edit-card-img-upload" type="file" accept="image/*">
-            </label>
-            <button type="button" id="remove-card-img-btn" style="margin: 6px 0 10px 0; display:none;">
-                Afbeelding verwijderen
-            </button>
-            <button type="button" id="remove-card-img-btn" style="margin: 6px 0 10px 0; display:none;">
-                Afbeelding verwijderen
-            </button>
-            <label>
-                YouTube-link:<br>
-                <input id="edit-card-yt" type="url" style="width:100%;"
-                    placeholder="https://www.youtube.com/watch?v=...">
-            </label>
-            <br>
-            <button type="submit" class="popup-btn" style="margin-right:12px;">Opslaan</button>
-            <button type="button" id="edit-cancel-btn" class="popup-btn">Annuleren</button>
-            <button type="button" id="delete-card-btn" style="margin-top:8px; color:#c00;">
-                Kaartje verwijderen
-            </button>
-            <button type="button" id="remove-card-img-btn" class="popup-btn"
-                style="margin: 6px 0 10px 0; display:none;">
-                Afbeelding verwijderen
-            </button>
-        </form>
-    </div>
-</div>
-
-
-<!-- Popup voor kaarttype kiezen -->
-<div id="card-type-popup" class="popup-overlay" style="display:none;">
-    <div class="popup">
-        <h3>Kies een type kaart</h3>
-        <div class="type-grid">
-            <button class="type-btn" data-type="wortel" data-color="#b09e6d" data-icon="🌱">
-                <span class="type-icoon">🌱</span>
-                <span>Wortel</span>
-            </button>
-            <button class="type-btn" data-type="stam" data-color="#8d674a" data-icon="🌳">
-                <span class="type-icoon">🌳</span>
-                <span>Stam</span>
-            </button>
-            <button class="type-btn" data-type="tak" data-color="#7ecb8f" data-icon="🌿">
-                <span class="type-icoon">🌿</span>
-                <span>Tak</span>
-            </button>
-            <button class="type-btn" data-type="lucht" data-color="#90caf9" data-icon="☁️">
-                <span class="type-icoon">☁️</span>
-                <span>Lucht</span>
-            </button>
+<body>
+    <!-- Popup om kaart te bewerken -->
+    <div id="card-edit-popup" class="popup-overlay" style="display:none;">
+        <div class="popup">
+            <h3>Kaart bewerken</h3>
+            <form id="card-edit-form" autocomplete="off">
+                <label>
+                    Tekst:<br>
+                    <textarea id="edit-card-text" rows="3" style="width:100%;"></textarea>
+                </label>
+                <br>
+                <label>
+                    Afbeelding uploaden:
+                    <input id="edit-card-img-upload" type="file" accept="image/*">
+                </label>
+                <button id="remove-card-img-btn" type="button" style="margin: 6px 0 10px 0; display:none;">
+                    Afbeelding verwijderen
+                </button>
+                <label>
+                    YouTube-link:<br>
+                    <input id="edit-card-yt" type="url" style="width:100%;"
+                        placeholder="https://www.youtube.com/watch?v=...">
+                </label>
+                <br>
+                <button type="submit" class="popup-btn" style="margin-right:12px;">Opslaan</button>
+                <button type="button" id="edit-cancel-btn" class="popup-btn">Annuleren</button>
+                <button type="button" id="delete-card-btn" style="margin-top:8px; color:#c00;">
+                    Kaartje verwijderen
+                </button>
+            </form>
         </div>
     </div>
-</div>
 
-<body>
+    <!-- Popup voor kaarttype kiezen -->
+    <div id="card-type-popup" class="popup-overlay" style="display:none;">
+        <div class="popup">
+            <h3>Kies een type kaart</h3>
+            <div class="type-grid">
+                <button class="type-btn" data-type="wortel" data-color="#b09e6d" data-icon="🌱">
+                    <span class="type-icoon">🌱</span>
+                    <span>Wortel</span>
+                </button>
+                <button class="type-btn" data-type="stam" data-color="#8d674a" data-icon="🌳">
+                    <span class="type-icoon">🌳</span>
+                    <span>Stam</span>
+                </button>
+                <button class="type-btn" data-type="tak" data-color="#7ecb8f" data-icon="🌿">
+                    <span class="type-icoon">🌿</span>
+                    <span>Tak</span>
+                </button>
+                <button class="type-btn" data-type="lucht" data-color="#90caf9" data-icon="☁️">
+                    <span class="type-icoon">☁️</span>
+                    <span>Lucht</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div id="canvas-container">
         <canvas id="three-canvas"></canvas>
         <!-- Overlay voor kaarten -->
@@ -102,6 +94,5 @@
     </div>
     <script type="module" src="main.js"></script>
 </body>
-
 
 </html>

@@ -5,39 +5,47 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 const trunkHeight = 8;
 const trunkRadiusTop = 0.8;
 const trunkRadiusBottom = 1.0;
+
+// DOM-elementen
+const canvas = document.querySelector('#three-canvas');
 const editImgUpload = document.getElementById('edit-card-img-upload');
 const removeImgBtn = document.getElementById('remove-card-img-btn');
+const editPopup = document.getElementById('card-edit-popup');
+const editForm = document.getElementById('card-edit-form');
+const editText = document.getElementById('edit-card-text');
+const editCancelBtn = document.getElementById('edit-cancel-btn');
+const deleteBtn = document.getElementById('delete-card-btn');
+const typePopup = document.getElementById('card-type-popup');
+const typeBtns = typePopup.querySelectorAll('.type-btn');
 
-
-
-const canvas = document.querySelector('#three-canvas');
+// Renderer
 const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.shadowMap.enabled = true;
 renderer.setClearColor(0x000000, 0);
 
+// Scene en camera
 const scene = new THREE.Scene();
 scene.background = null;
-
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
 camera.position.set(5, 5, 10);
 
-// OrbitControls setup
+// Controls
 const controls = new OrbitControls(camera, renderer.domElement);
 controls.enableDamping = true;
 controls.enablePan = true;
 controls.screenSpacePanning = true;
 controls.minPolarAngle = 0.1;
 controls.maxPolarAngle = Math.PI / 2.01;
-// Removed zoom distance limits to allow free zooming
-controls.zoomSpeed = 0.15;  // verlaag zoomsnelheid voor rustigere bediening
-
+controls.zoomSpeed = 0.15;
 
 // Licht
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
 const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
 dirLight.position.set(5, 10, 5);
 scene.add(dirLight);
+scene.add(new THREE.HemisphereLight(0x87ceeb, 0x555555, 0.6));
+scene.fog = new THREE.Fog(0x044a01, 10, 200);
 
 // Stam
 const trunkGeo = new THREE.CylinderGeometry(trunkRadiusTop, trunkRadiusBottom, trunkHeight, 16);
@@ -68,20 +76,13 @@ scene.add(trunk);
 {
     const radius = 5.5;
     const segments = 32;
-    // Halve bol
-    const hemiGeo = new THREE.SphereGeometry(
-        radius, segments, segments / 2,
-        0, Math.PI * 2,
-        0, Math.PI / 2
-    );
+    const hemiGeo = new THREE.SphereGeometry(radius, segments, segments / 2, 0, Math.PI * 2, 0, Math.PI / 2);
     const hemiMat = new THREE.MeshPhongMaterial({ color: 0x004d00, side: THREE.DoubleSide });
     const hemisphere = new THREE.Mesh(hemiGeo, hemiMat);
     hemisphere.castShadow = hemisphere.receiveShadow = true;
     hemisphere.userData.surface = 'canopy';
     hemisphere.position.set(0, trunkHeight, 0);
     scene.add(hemisphere);
-
-    // Platte cirkel voor sluiting
     const capGeo = new THREE.CircleGeometry(radius, segments);
     const capMat = new THREE.MeshPhongMaterial({ color: 0x004d00, side: THREE.DoubleSide });
     const cap = new THREE.Mesh(capGeo, capMat);
@@ -99,86 +100,100 @@ const ground = new THREE.Mesh(
 );
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
-scene.add(ground);
 ground.userData.surface = 'ground';
+scene.add(ground);
 
-// Fog & Hemisferisch licht
-scene.add(new THREE.HemisphereLight(0x87ceeb, 0x555555, 0.6));
-scene.fog = new THREE.Fog(0x044a01, 10, 200);
-
-// Responsief & animatie
+// Responsief
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
     camera.updateProjectionMatrix();
     renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-// ===== Interactie =====
+// State
 let pending3DCard = null;
 let draggingMesh = null;
+let meshBeingEdited = null;
 const dragPlane = new THREE.Plane();
 const dragOffset = new THREE.Vector3();
 const raycaster = new THREE.Raycaster();
 const pointer = new THREE.Vector2();
 
-const editPopup = document.getElementById('card-edit-popup');
-const editForm = document.getElementById('card-edit-form');
-const editText = document.getElementById('edit-card-text');
-const editCancelBtn = document.getElementById('edit-cancel-btn');
-let meshBeingEdited = null;
-
-const typePopup = document.getElementById('card-type-popup');
-const typeBtns = typePopup.querySelectorAll('.type-btn');
-document.getElementById('add-card-btn').addEventListener('click', () => typePopup.style.display = 'flex');
+// Kaarttype-popup
+const addCardBtn = document.getElementById('add-card-btn');
+addCardBtn.addEventListener('click', () => typePopup.style.display = 'flex');
 typeBtns.forEach(btn => btn.addEventListener('click', () => {
     typePopup.style.display = 'none';
-    pending3DCard = { text: 'Nieuwe kaart', icon: btn.dataset.icon, color: btn.dataset.color };
+    pending3DCard = { text: '', icon: btn.dataset.icon, color: btn.dataset.color };
 }));
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
-function makeCardTexture({ text, icon, color, imgData, width, height }) {
+// Dynamic texture generator
+async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
+    const padding = 12;
+    const iconSize = 24;
+    const lineHeight = 20;
+    const tempCanvas = document.createElement('canvas');
+    const tempCtx = tempCanvas.getContext('2d');
+    tempCtx.font = `${iconSize}px Quicksand`;
+    const lines = wrapText(tempCtx, text, width - 2 * padding);
+    const textBlockHeight = iconSize + lines.length * lineHeight;
+    let imgHeight = 0;
+    if (imgData) {
+        const img = new Image();
+        await new Promise(resolve => { img.onload = resolve; img.src = imgData; });
+        imgHeight = (width - 2 * padding) / (img.width / img.height);
+    }
     const canvas2D = document.createElement('canvas');
+    const height = padding + textBlockHeight + (imgData ? imgHeight + padding : padding);
     canvas2D.width = width;
     canvas2D.height = height;
     const ctx = canvas2D.getContext('2d');
-
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, width, height);
-
-    ctx.font = '24px Quicksand';
+    ctx.font = `${iconSize}px Quicksand`;
     ctx.fillStyle = getComputedTextColor(color);
-    ctx.fillText(icon, 12, 30);
-
-    ctx.font = '16px Quicksand';
-    wrapText(ctx, text, width - 24).forEach((line, i) => {
-        ctx.fillText(line, 12, 60 + i * 20);
-    });
-
+    ctx.fillText(icon, padding, padding + iconSize);
+    ctx.font = `16px Quicksand`;
+    ctx.fillStyle = getComputedTextColor(color);
+    lines.forEach((line, i) => ctx.fillText(line, padding, padding + iconSize + (i + 1) * lineHeight));
     if (imgData) {
         const img = new Image();
         img.src = imgData;
         img.onload = () => {
-            const aspectRatio = img.width / img.height;
-            let imgWidth = width - 24;
-            let imgHeight = imgWidth / aspectRatio;
-
-            if (imgHeight > height / 2) {
-                imgHeight = height / 2;
-                imgWidth = imgHeight * aspectRatio;
-            }
-
-            const imgX = (width - imgWidth) / 2;
-            const imgY = height - imgHeight - 10;
-            ctx.drawImage(img, imgX, imgY, imgWidth, imgHeight);
-            tex.needsUpdate = true;
+            const imgW = width - 2 * padding;
+            const imgH = imgW / (img.width / img.height);
+            ctx.drawImage(img, padding, padding + textBlockHeight + padding, imgW, imgH);
+            texture.needsUpdate = true;
         };
     }
-
-    const tex = new THREE.CanvasTexture(canvas2D);
-    tex.needsUpdate = true;
-    return tex;
+    const texture = new THREE.CanvasTexture(canvas2D);
+    texture.needsUpdate = true;
+    return texture;
 }
 
+// Helpers
+function wrapText(ctx, text, maxWidth) {
+    const words = text.split(' ');
+    const lines = [];
+    let line = '';
+    words.forEach(word => {
+        const test = line ? `${line} ${word}` : word;
+        if (ctx.measureText(test).width > maxWidth) {
+            lines.push(line);
+            line = word;
+        } else line = test;
+    });
+    if (line) lines.push(line);
+    return lines;
+}
+
+function getComputedTextColor(hex) {
+    hex = hex.replace('#', '');
+    if (hex.length === 3) hex = hex.split('').map(h => h + h).join('');
+    const [r, g, b] = [hex.substr(0, 2), hex.substr(2, 2), hex.substr(4, 2)].map(h => parseInt(h, 16));
+    return ((r * 299 + g * 587 + b * 114) / 1000) < 160 ? '#fffbea' : '#333';
+}
 
 function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     const geo = new THREE.PlaneGeometry(w, h);
@@ -188,179 +203,165 @@ function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     mesh.add(new THREE.Mesh(geo, matBack));
     return mesh;
 }
-function getComputedTextColor(hex) {
-    hex = hex.replace('#', '');
-    if (hex.length === 3) hex = hex.split('').map(x => x + x).join('');
-    const [r, g, b] = [hex.substr(0, 2), hex.substr(2, 2), hex.substr(4, 2)].map(h => parseInt(h, 16));
-    return ((r * 299 + g * 587 + b * 114) / 1000) < 160 ? '#fffbea' : '#333';
-}
-function wrapText(ctx, text, maxWidth) {
-    const words = text.split(' '), lines = [];
-    let line = '';
-    words.forEach(w => {
-        const test = line ? line + ' ' + w : w;
-        if (ctx.measureText(test).width > maxWidth) {
-            lines.push(line);
-            line = w;
-        } else line = test;
-    });
-    if (line) lines.push(line);
-    return lines;
-}
 
-canvas.addEventListener('pointerdown', event => {
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
+async function create3DCard({ position, normal, text, icon, color, imgData }) {
+    // 1. Texture maken (zoals voorheen)
+    const tex = await makeCardTexture({ text, icon, color, imgData, width: 256 });
 
-    if (pending3DCard) {
-        const hit = raycaster.intersectObjects(scene.children, true)
-            .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
-        if (!hit) return;
-        create3DCard({
-            position: hit.point,
-            normal: hit.face.normal.clone().transformDirection(hit.object.matrixWorld),
-            ...pending3DCard
-        });
-        pending3DCard = null;
-        return;
+    // 2. Bepaal display-breedte (world-units)
+    const displayWidth = 1.5;
+    let displayHeight;
+
+    // 3. Wanneer er écht niets in staat behalve het icoon:
+    if (!text && !imgData) {
+        // vierkant houden, zodat het icoon niet vervormt
+        displayHeight = displayWidth;
+
+    } else if (imgData) {
+        // jouw bestaande image-+text-logica:
+        // - eerst de raw image laden om de aspect ratio te bepalen
+        const img = new Image();
+        await new Promise(res => { img.onload = res; img.src = imgData; });
+        const imgAspect = img.width / img.height;
+        const imageDisplayHeight = displayWidth / imgAspect;
+        const textHeight = 0.6; // tunen naar jouw font-hoogte in world-units
+        displayHeight = textHeight + imageDisplayHeight;
+
+    } else {
+        // alleen tekst (geen afbeelding): bepaal op basis van aantal regels
+        // stel bijvoorbeeld een vaste text-blok hoogte in:
+        displayHeight = 0.8;
     }
 
-    const hitDrag = raycaster.intersectObjects(scene.children, true)
-        .find(i => typeof i.object.userData.text === 'string');
-    if (hitDrag) {
-        draggingMesh = hitDrag.object;
-        dragPlane.setFromNormalAndCoplanarPoint(
-            camera.getWorldDirection(new THREE.Vector3()).negate(),
-            draggingMesh.position
-        );
-        const intersection = new THREE.Vector3();
-        raycaster.ray.intersectPlane(dragPlane, intersection);
-        dragOffset.copy(intersection).sub(draggingMesh.position);
-    }
-});
+    // 4. Mesh aanmaken met de berekende verhouding
+    const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
 
-window.addEventListener('pointermove', event => {
-    if (!draggingMesh) return;
-    // update pointer
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
-    // intersect only valid surfaces
-    const hit = raycaster.intersectObjects(scene.children, true)
-        .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
-    if (hit) {
-        // position slightly above surface
-        const normWorld = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
-        const newPos = hit.point.clone().add(normWorld.multiplyScalar(0.01));
-        draggingMesh.position.copy(newPos);
-        // orient according to surface normal
-        if (Math.abs(normWorld.y) > 0.9) {
-            // ground-like surface: card upright
-            draggingMesh.up.set(0, 1, 0);
-            const target = new THREE.Vector3(camera.position.x, newPos.y, camera.position.z);
-            draggingMesh.lookAt(target);
-        } else {
-            // tree surface: follow normal
-            draggingMesh.lookAt(newPos.clone().add(normWorld));
-        }
-    }
-});
-
-canvas.addEventListener('pointerup', () => { draggingMesh = null; });
-
-canvas.addEventListener('dblclick', event => {
-    pointer.x = (event.clientX / window.innerWidth) * 2 - 1;
-    pointer.y = -(event.clientY / window.innerHeight) * 2 + 1;
-    raycaster.setFromCamera(pointer, camera);
-    const hitEdit = raycaster.intersectObjects(scene.children, true)
-        .find(i => typeof i.object.userData.text === 'string');
-    if (hitEdit) {
-        meshBeingEdited = hitEdit.object;
-        editText.value = meshBeingEdited.userData.text;
-        editImgUpload.value = null;
-        removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
-        editPopup.style.display = 'flex';
-    }
-});
-
-
-// Functie om afbeelding uit File naar base64 te converteren
-function getUploadedImgData(file) {
-    return new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-    });
-}
-
-
-editCancelBtn.addEventListener('click', () => { editPopup.style.display = 'none'; meshBeingEdited = null; });
-editForm.addEventListener('submit', async event => {
-    event.preventDefault();
-
-    const newText = editText.value.trim() || meshBeingEdited.userData.text;
-    meshBeingEdited.userData.text = newText;
-
-    const imgFile = editImgUpload.files[0];
-    if (imgFile) {
-        meshBeingEdited.userData.imgData = await getUploadedImgData(imgFile);
-    }
-
-    const newTex = makeCardTexture({
-        text: newText,
-        icon: meshBeingEdited.userData.icon,
-        color: meshBeingEdited.userData.color,
-        imgData: meshBeingEdited.userData.imgData,
-        width: 2048,
-        height: 1024
-    });
-
-    meshBeingEdited.material.map = newTex;
-    meshBeingEdited.material.needsUpdate = true;
-    editPopup.style.display = 'none';
-    meshBeingEdited = null;
-});
-
-
-const deleteBtn = document.getElementById('delete-card-btn');
-deleteBtn.addEventListener('click', () => {
-    if (!meshBeingEdited) return;
-    // 1) Verwijder uit scène
-    scene.remove(meshBeingEdited);
-    // 2) Optioneel: verwijder uit je kaarten-array als je die hebt:
-    // kaarten = kaarten.filter(k => k.mesh !== meshBeingEdited);
-    meshBeingEdited = null;
-    // 3) Sluit de popup
-    editPopup.style.display = 'none';
-});
-
-
-function create3DCard({ position, normal, text, icon, color, width = 1.5, height = 0.8 }) {
-    const tex = makeCardTexture({ text, icon, color, width: 256, height: 128 });
-    const mesh = makeCardMesh(tex, color, width, height);
+    // 5. Positioneren en toevoegen zoals voorheen
     mesh.castShadow = mesh.receiveShadow = true;
     mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
     mesh.lookAt(position.clone().add(normal));
-    mesh.userData = { text, icon, color };
+    mesh.userData = { text, icon, color, imgData };
     scene.add(mesh);
 }
 
 
-// Animatie loop
+// Pointer events
+canvas.addEventListener('pointerdown', e => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    if (pending3DCard) {
+        const hit = raycaster.intersectObjects(scene.children, true)
+            .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
+        if (!hit) return;
+        create3DCard({ position: hit.point, normal: hit.face.normal.clone().transformDirection(hit.object.matrixWorld), ...pending3DCard });
+        pending3DCard = null;
+        return;
+    }
+    const hitDrag = raycaster.intersectObjects(scene.children, true)
+        .find(i => typeof i.object.userData.text === 'string');
+    if (hitDrag) {
+        draggingMesh = hitDrag.object;
+        dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()).negate(), draggingMesh.position);
+        const intersect = new THREE.Vector3();
+        raycaster.ray.intersectPlane(dragPlane, intersect);
+        dragOffset.copy(intersect).sub(draggingMesh.position);
+    }
+});
+window.addEventListener('pointermove', e => {
+    if (!draggingMesh) return;
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hit = raycaster.intersectObjects(scene.children, true)
+        .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
+    if (hit) {
+        const norm = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+        const newPos = hit.point.clone().add(norm.multiplyScalar(0.01));
+        draggingMesh.position.copy(newPos);
+        if (Math.abs(norm.y) > 0.9) {
+            draggingMesh.up.set(0, 1, 0);
+            draggingMesh.lookAt(new THREE.Vector3(camera.position.x, newPos.y, camera.position.z));
+        } else {
+            draggingMesh.lookAt(newPos.clone().add(norm));
+        }
+    }
+});
+canvas.addEventListener('pointerup', () => draggingMesh = null);
+canvas.addEventListener('dblclick', e => {
+    pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
+    pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
+    raycaster.setFromCamera(pointer, camera);
+    const hitEdit = raycaster.intersectObjects(scene.children, true)
+        .find(i => typeof i.object.userData.text === 'string');
+    if (!hitEdit) return;
+    meshBeingEdited = hitEdit.object;
+    editText.value = meshBeingEdited.userData.text;
+    editImgUpload.value = '';
+    removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
+    editPopup.style.display = 'flex';
+});
+
+// File to base64
+function getUploadedImgData(file) {
+    return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = () => res(reader.result);
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+    });
+}
+
+// Edit handlers
+editCancelBtn.addEventListener('click', () => { editPopup.style.display = 'none'; meshBeingEdited = null; });
+editForm.addEventListener('submit', async event => {
+    event.preventDefault();
+    // Update tekst
+    meshBeingEdited.userData.text = editText.value.trim();
+
+    // Update plaatje als er een file is geselecteerd
+    if (editImgUpload.files[0]) {
+        meshBeingEdited.userData.imgData = await getUploadedImgData(editImgUpload.files[0]);
+    }
+
+    // Nieuwe texture genereren en toepassen
+    const newTex = await makeCardTexture({
+        text: meshBeingEdited.userData.text,
+        icon: meshBeingEdited.userData.icon,
+        color: meshBeingEdited.userData.color,
+        imgData: meshBeingEdited.userData.imgData,
+        width: 256
+    });
+    meshBeingEdited.material.map = newTex;
+    meshBeingEdited.material.needsUpdate = true;
+
+    // Popup sluiten
+    editPopup.style.display = 'none';
+    meshBeingEdited = null;
+});
+
+
+deleteBtn.addEventListener('click', () => {
+    if (!meshBeingEdited) return;
+    scene.remove(meshBeingEdited);
+    meshBeingEdited = null;
+    editPopup.style.display = 'none';
+});
+
+// Remove image btn
+removeImgBtn.addEventListener('click', () => {
+    if (!meshBeingEdited) return;
+    meshBeingEdited.userData.imgData = null;
+    editImgUpload.value = '';
+    removeImgBtn.style.display = 'none';
+});
+
+// Animate loop
 (function animate() {
     requestAnimationFrame(animate);
     controls.update();
     renderer.render(scene, camera);
 })();
-
-removeImgBtn.addEventListener('click', () => {
-    meshBeingEdited.userData.imgData = null;
-    editImgUpload.value = null;
-    removeImgBtn.style.display = 'none';
-});
-
 
 // Expose globals
 window.THREE = THREE;
