@@ -374,6 +374,44 @@ canvas.addEventListener('dblclick', e => {
     editPopup.style.display = 'flex';
 });
 
+// === MOBILE: Double-tap voor kaart-bewerken op touch devices ===
+
+let lastTapTime = 0;
+let lastTapX = 0, lastTapY = 0;
+const DOUBLE_TAP_TIME = 350; // ms
+
+canvas.addEventListener('touchend', function (e) {
+    if (e.touches.length > 0) return; // ignore multi-touch
+    const now = Date.now();
+    const tapX = e.changedTouches[0].clientX;
+    const tapY = e.changedTouches[0].clientY;
+
+    // optioneel: alleen als tap dicht bij vorige tap (<40px)
+    const dist = Math.hypot(tapX - lastTapX, tapY - lastTapY);
+
+    if (now - lastTapTime < DOUBLE_TAP_TIME && dist < 40) {
+        // Dit is een double-tap!
+        pointer.x = (tapX / window.innerWidth) * 2 - 1;
+        pointer.y = -(tapY / window.innerHeight) * 2 + 1;
+        raycaster.setFromCamera(pointer, camera);
+        const hitEdit = raycaster.intersectObjects(scene.children, true)
+            .find(i => typeof i.object.userData.text === 'string');
+        if (hitEdit) {
+            meshBeingEdited = hitEdit.object;
+            editText.value = meshBeingEdited.userData.text;
+            editImgUpload.value = '';
+            removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
+            editPopup.style.display = 'flex';
+        }
+        lastTapTime = 0; // reset
+    } else {
+        lastTapTime = now;
+        lastTapX = tapX;
+        lastTapY = tapY;
+    }
+}, { passive: true });
+
+
 // File to base64
 function getUploadedImgData(file) {
     return new Promise((res, rej) => {
