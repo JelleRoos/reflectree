@@ -435,6 +435,79 @@ removeImgBtn.addEventListener('click', () => {
     renderer.render(scene, camera);
 })();
 
+// EXPORT: maak JSON en download als bestand
+document.getElementById('export-btn').addEventListener('click', () => {
+    const cards = [];
+    // loop door alle meshes in scene
+    scene.traverse(obj => {
+        if (obj.userData && typeof obj.userData.text === 'string') {
+            cards.push({
+                text: obj.userData.text,
+                icon: obj.userData.icon,
+                color: obj.userData.color,
+                imgData: obj.userData.imgData,
+                position: obj.position.toArray(),
+                quaternion: obj.quaternion.toArray(),
+                // optioneel: breedte/hoogte van je kaartvlak:
+                width: obj.geometry.parameters.width,
+                height: obj.geometry.parameters.height
+            });
+        }
+    });
+
+    const json = JSON.stringify(cards, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reflectree-cards.json';
+    a.click();
+    URL.revokeObjectURL(url);
+});
+
+// Voeg dit ergens onderin je main.js toe, óf direct na de export-handler:
+document.getElementById('import-btn').addEventListener('click', () => {
+    document.getElementById('import-input').click();
+});
+
+// IMPORT: lees JSON en maak kaarten opnieuw
+document.getElementById('import-input').addEventListener('change', async e => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    const text = await file.text();
+    let cards;
+    try {
+        cards = JSON.parse(text);
+    } catch {
+        return alert('Ongeldig JSON-bestand');
+    }
+
+    // eerst alle bestaande kaarten verwijderen
+    scene.traverse(obj => {
+        if (obj.userData && typeof obj.userData.text === 'string') {
+            scene.remove(obj);
+        }
+    });
+
+    // daarna opnieuw aanmaken
+    for (const card of cards) {
+        const { text, icon, color, imgData, position, quaternion, width, height } = card;
+        // maak texture & mesh zoals normaal, geef width/height door
+        const tex = await makeCardTexture({ text, icon, color, imgData, width: 256 });
+        const mesh = makeCardMesh(tex, color, width, height);
+        mesh.castShadow = mesh.receiveShadow = true;
+
+        // positie en oriëntatie herstellen
+        mesh.position.fromArray(position);
+        mesh.quaternion.fromArray(quaternion);
+
+        mesh.userData = { text, icon, color, imgData };
+        scene.add(mesh);
+    }
+});
+
+
 // Expose globals
 window.THREE = THREE;
 window.scene = scene;
