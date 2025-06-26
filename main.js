@@ -128,35 +128,98 @@ typeBtns.forEach(btn => btn.addEventListener('click', () => {
 }));
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
-// Dynamic texture generator
 async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
+    // ─── SPECIAL CASE: alleen icoon ───
+    if (!text && !imgData) {
+        const SIZE = width;
+        const canvas2D = document.createElement('canvas');
+        canvas2D.width = SIZE;
+        canvas2D.height = SIZE;
+        const ctx = canvas2D.getContext('2d');
+
+        // achtergrond
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, SIZE, SIZE);
+
+        // icoon scherp en kleiner (40% van de canvas)
+        const fontSize = SIZE * 0.4;
+        ctx.font = `${fontSize}px Quicksand`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle = getComputedTextColor(color);
+        ctx.fillText(icon, SIZE / 2, SIZE / 2);
+
+        const texture = new THREE.CanvasTexture(canvas2D);
+        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        texture.generateMipmaps = false;
+        texture.minFilter = THREE.LinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.needsUpdate = true;
+        return texture;
+    }
+
+    // ─── ALGEMENE CASE: tekst ± afbeelding ───
     const padding = 12;
     const iconSize = 24;
-    const lineHeight = 20;
+
+    // 1. Meet de tekst
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
     tempCtx.font = `${iconSize}px Quicksand`;
     const lines = wrapText(tempCtx, text, width - 2 * padding);
-    const textBlockHeight = iconSize + lines.length * lineHeight;
+    const numLines = Math.max(lines.length, 1);
+
+    // 2. Bereken hoogte voor tekstblok en afbeelding
+    const textBlockHeight = iconSize + numLines * iconSize * 1.2; // provisional
     let imgHeight = 0;
     if (imgData) {
         const img = new Image();
-        await new Promise(resolve => { img.onload = resolve; img.src = imgData; });
-        imgHeight = (width - 2 * padding) / (img.width / img.height);
+        await new Promise(res => { img.onload = res; img.src = imgData; });
+        const aspect = img.width / img.height;
+        imgHeight = (width - 2 * padding) / aspect;
     }
-    const canvas2D = document.createElement('canvas');
+
+    // 3. Bereken totale canvas-hoogte
     const height = padding + textBlockHeight + (imgData ? imgHeight + padding : padding);
-    canvas2D.width = width;
-    canvas2D.height = height;
+
+    // 4. Maak high-DPI canvas
+    const DPR = window.devicePixelRatio || 1;
+    const canvas2D = document.createElement('canvas');
+    canvas2D.width = width * DPR;
+    canvas2D.height = height * DPR;
     const ctx = canvas2D.getContext('2d');
+    ctx.scale(DPR, DPR);
+
+    // 5. Achtergrond
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, width, height);
+
+    // 6. Icoon linksboven
     ctx.font = `${iconSize}px Quicksand`;
     ctx.fillStyle = getComputedTextColor(color);
     ctx.fillText(icon, padding, padding + iconSize);
-    ctx.font = `16px Quicksand`;
+
+    // 7. Dynamische font-size voor tekst
+    const availableTextHeight = textBlockHeight - iconSize;
+    const maxFontSize = iconSize;
+    const dynamicFontSize = Math.min(
+        maxFontSize,
+        (availableTextHeight / numLines) * 0.8
+    );
+    const lineHeight = dynamicFontSize * 1.2;
+
+    // 8. Tekstregels tekenen
+    ctx.font = `${dynamicFontSize}px Quicksand`;
     ctx.fillStyle = getComputedTextColor(color);
-    lines.forEach((line, i) => ctx.fillText(line, padding, padding + iconSize + (i + 1) * lineHeight));
+    lines.forEach((line, i) => {
+        ctx.fillText(
+            line,
+            padding,
+            padding + iconSize + lineHeight * (i + 1)
+        );
+    });
+
+    // 9. Afbeelding tekenen (indien aanwezig)
     if (imgData) {
         const img = new Image();
         img.src = imgData;
@@ -167,10 +230,19 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
             texture.needsUpdate = true;
         };
     }
+
+    // 10. Maak en configureer texture
     const texture = new THREE.CanvasTexture(canvas2D);
+    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    texture.generateMipmaps = false;
+    texture.minFilter = THREE.LinearFilter;
+    texture.magFilter = THREE.LinearFilter;
     texture.needsUpdate = true;
     return texture;
 }
+
+
+
 
 // Helpers
 function wrapText(ctx, text, maxWidth) {
