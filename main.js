@@ -28,7 +28,7 @@ renderer.setClearColor(0x000000, 0);
 const scene = new THREE.Scene();
 scene.background = null;
 const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
-camera.position.set(5, 5, 10);
+camera.position.set(5, 12, 18);
 
 // Controls
 const controls = new OrbitControls(camera, renderer.domElement);
@@ -38,6 +38,9 @@ controls.screenSpacePanning = true;
 controls.minPolarAngle = 0.1;
 controls.maxPolarAngle = Math.PI / 2.01;
 controls.zoomSpeed = 0.15;
+
+controls.target.set(0, trunkHeight / 2, 0);
+controls.update();
 
 // Licht
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
@@ -102,6 +105,47 @@ ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 ground.userData.surface = 'ground';
 scene.add(ground);
+
+// === RIVIER: LANGE S-BOCHT VER VOOR DE BOOM LANGS, VAN LINKS NAAR RECHTS ===
+
+// 1. Groot rivierpad tekenen: alle punten ver buiten (0,0)
+//    y-waarden < -8 = altijd vóór de boom (boom staat op y = 0)
+const riverShape = new THREE.Shape();
+riverShape.moveTo(-60, -35); // ver buiten beeld links onderaan
+
+// Eerste bocht naar voren (nog steeds ver onder de boom)
+riverShape.bezierCurveTo(-400, -32, -25, -24, -15, -16);
+
+// Grote S-bocht (helemaal vóór de boom)
+riverShape.bezierCurveTo(-5, -12, 5, -12, 15, -17);
+
+// Bocht naar rechts ver buiten beeld
+riverShape.bezierCurveTo(35, -22, 500, -28, 60, -30); // ver buiten beeld rechts
+
+// 2. Maak een vlak van de shape
+const riverSettings = { depth: 0.11, bevelEnabled: false, steps: 1 };
+const riverGeometry = new THREE.ExtrudeGeometry(riverShape, riverSettings);
+
+// 3. Breder maken in y-richting (= breedte rivier), plat maken
+riverGeometry.scale(1, 0.27, 0.11);  // y bepaalt breedte, z dikte
+riverGeometry.rotateX(-Math.PI / 2); // vlak leggen
+riverGeometry.translate(0, 0.04, 0); // net boven het gras
+
+// 4. Materiaal: lichtblauw, glans, doorschijnend
+const riverMaterial = new THREE.MeshPhongMaterial({
+    color: 0x67cbfa,
+    shininess: 130,
+    transparent: true,
+    opacity: 0.81
+});
+
+// 5. Mesh aanmaken en toevoegen aan de scene
+const riverMesh = new THREE.Mesh(riverGeometry, riverMaterial);
+riverMesh.receiveShadow = true;
+scene.add(riverMesh);
+
+
+
 
 // Responsief
 window.addEventListener('resize', () => {
