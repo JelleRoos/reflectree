@@ -5,57 +5,22 @@
     <meta charset="UTF-8" />
     <title>Reflectree 🌳</title>
     <link rel="stylesheet" href="style.css" />
-    <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-        }
-
-        canvas {
-            display: block;
-            width: 100vw;
-            height: 100vh;
-        }
-
-        .toolbar {
-            position: absolute;
-            top: 16px;
-            left: 16px;
-            display: flex;
-            gap: 8px;
-            z-index: 20;
-        }
-
-        .toolbar button {
-            background: #ffe57f;
-            color: #644100;
-            border: none;
-            border-radius: 11px;
-            padding: 8px 12px;
-            font-size: 1rem;
-            cursor: pointer;
-            box-shadow: 0 3px 8px rgba(110, 160, 130, 0.08);
-            transition: background 0.17s;
-        }
-
-        .toolbar button:hover {
-            background: #ffd740;
-        }
-    </style>
     <script type="importmap">
-  {
-    "imports": {
-      "three": "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js",
-      "three/": "https://cdn.jsdelivr.net/npm/three@0.150.0/"
+    {
+      "imports": {
+        "three": "https://cdn.jsdelivr.net/npm/three@0.150.0/build/three.module.js",
+        "three/": "https://cdn.jsdelivr.net/npm/three@0.150.0/"
+      }
     }
-  }
-  </script>
+    </script>
 </head>
 
 <body>
-    <!-- Toolbar met knoppen -->
-    <div class="toolbar">
-        <button id="add-card-btn">+ Kaart toevoegen</button>
+    <!-- Kaart toevoegen knop (desktop: rechtsboven, mobile: onderin) -->
+    <button id="add-card-btn">+ Kaart toevoegen</button>
+
+    <!-- Import/export knoppen (desktop: rechtsonder, mobile: onderin naast elkaar) -->
+    <div class="import-export-toolbar">
         <button id="export-btn">Boom exporteren</button>
         <button id="import-btn">Boom importeren</button>
         <input id="import-input" type="file" accept=".json" style="display:none;" />
