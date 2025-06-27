@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 const trunkHeight = 8;
 const trunkRadiusTop = 0.8;
 const trunkRadiusBottom = 1.0;
+const popAnimations = [];
 
 // DOM-elementen
 const canvas = document.querySelector('#three-canvas');
@@ -330,11 +331,12 @@ function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     mesh.add(new THREE.Mesh(geo, matBack));
     return mesh;
 }
+
 async function create3DCard({ position, normal, text, icon, color, imgData, surface }) {
-    // 1. Texture maken
+    // ─── 1. Texture maken ───
     const tex = await makeCardTexture({ text, icon, color, imgData, width: 256 });
 
-    // 2. Bepaal breedte/hoogte
+    // ─── 2. Breedte/hoogte bepalen ───
     const displayWidth = 1.5;
     let displayHeight;
     if (!text && !imgData) {
@@ -348,18 +350,15 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
         displayHeight = 0.8;
     }
 
-    // 3. Maak mesh
+    // ─── 3. Mesh maken ───
     const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
     mesh.castShadow = mesh.receiveShadow = true;
 
-    // 4. Plaats iets boven het oppervlak
+    // ─── 4. Positioneren en oriënteren ───
     mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
-
     if (surface === 'ground' || surface === 'rivier') {
-        // Rechtop en iets omhoog
         mesh.rotation.set(0, 0, 0);
         mesh.position.y += 0.2;
-
         // Billboard naar camera
         const target = new THREE.Vector3(
             camera.position.x,
@@ -367,16 +366,22 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
             camera.position.z
         );
         mesh.lookAt(target);
-
     } else {
-        // Oriëntatie op stam/tak/etc.
         mesh.lookAt(position.clone().add(normal));
     }
 
-    // 5. Opslaan en toevoegen
+    // ─── 5. Data opslaan ───
     mesh.userData = { text, icon, color, imgData };
+
+    // ─── 6. Pop-animatie initialiseren ───
+    mesh.scale.set(0.001, 0.001, 0.001);
+    mesh.userData.popStart = performance.now();
+    popAnimations.push(mesh);
+
+    // ─── 7. Mesh toevoegen ───
     scene.add(mesh);
 }
+
 
 
 
@@ -568,12 +573,27 @@ removeImgBtn.addEventListener('click', () => {
     removeImgBtn.style.display = 'none';
 });
 
-// Animate loop
 (function animate() {
     requestAnimationFrame(animate);
+
+    // ─── Pop-in animatie verwerken ───
+    const now = performance.now();
+    for (let i = popAnimations.length - 1; i >= 0; i--) {
+        const m = popAnimations[i];
+        const t = (now - m.userData.popStart) / 200; // 200ms duur
+        if (t < 1) {
+            const s = THREE.MathUtils.lerp(0, 1, t);
+            m.scale.set(s, s, s);
+        } else {
+            m.scale.set(1, 1, 1);
+            popAnimations.splice(i, 1);
+        }
+    }
+
     controls.update();
     renderer.render(scene, camera);
 })();
+
 
 // EXPORT: maak JSON en download als bestand
 document.getElementById('export-btn').addEventListener('click', () => {
