@@ -745,3 +745,70 @@ h2 {
         border-radius: 12px;
     }
 }
+
+/* Stijl voor de help-panel tekst */
+.help-panel {
+    font-family: 'Quicksand', sans-serif;
+    line-height: 1.4;
+    color: #333;
+    /* Donkergrijze hoofdtekst */
+}
+
+/* Kopjes in de panel */
+.help-panel h3 {
+    font-size: 1.1rem;
+    color: #1976d2;
+    /* Blauwtint voor accent */
+    margin-bottom: 0.5em;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+/* Lijst-items */
+.help-panel ul>li {
+    margin-bottom: 0.6em;
+}
+
+/* Binnenste lijst */
+.help-panel ul ul li {
+    font-size: 0.95rem;
+    color: #555;
+    margin-left: 0.5em;
+}
+
+/* Vetgedrukte key-woorden */
+.help-panel strong {
+    color: #7ecb8f;
+    /* Groentint voor highlight */
+}
+
+/* Cursief voor acties */
+.help-panel em {
+    font-style: italic;
+    color: #8d674a;
+    /* Aardetint voor subtiel accent */
+}
+
+/* Maak bullets en tekst dichter bij elkaar */
+.help-panel ul {
+    list-style-position: inside;
+    /* bullet ín de tekstflow */
+    padding-left: 0;
+    /* verwijder extra padding links */
+    margin: 0;
+    /* voorkom extra marges */
+}
+
+/* Li’s zelf ook wat compacter maken */
+.help-panel ul li {
+    margin-bottom: 0.3em;
+    /* kleinere afstand tussen regels */
+    padding-left: 0.4em;
+    /* iets ruimte voor de bullet */
+}
+
+/* Indien je geneste lijstje nóg compacter wilt */
+.help-panel ul ul {
+    margin-left: 0.8em;
+    /* inspringen van de sub-lijst */
+}
