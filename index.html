@@ -51,7 +51,7 @@
 
 
     <!-- Optie-icoon voor mobile -->
-    <button id="options-btn" class="toolbar-btn" aria-label="Opties">⚙️</button>
+    <button id="options-btn" class="toolbar-btn" aria-label="Opties">🔄</button>
 
     <!-- Modal voor Import/Export -->
     <div id="options-modal" class="modal-overlay" style="display:none;">
@@ -82,6 +82,36 @@
             </div>
         </div>
     </div>
+
+    <!-- Help-icoon -->
+    <button id="help-toggle" class="toolbar-btn" aria-label="Help">❔</button>
+
+    <!-- Help-panel -->
+    <div id="help-panel" class="help-panel" style="display:none;">
+        <button id="help-close" class="modal-close" aria-label="Sluiten">✕</button>
+        <h3>Hoe gebruik je Reflectree?</h3>
+        <ul>
+            <li><strong>Desktop</strong>
+                <ul>
+                    <li>Klik & sleep om te <em>draaien</em>.</li>
+                    <li>Scroll (of pinch) om te <em>zoomen</em>.</li>
+                    <li>SHIFT + drag om te <em>pan</em>.</li>
+                    <li>“+ Kaart toevoegen” → klik op een oppervlak.</li>
+                    <li>Dubbelklik op kaartje om te bewerken.</li>
+                </ul>
+            </li>
+            <li><strong>Mobile</strong>
+                <ul>
+                    <li>Eénvinger-drag om te <em>draaien</em>.</li>
+                    <li>Pinch-gesture om te <em>zoomen</em>.</li>
+                    <li>Tweevinger-drag om te <em>pan</em>.</li>
+                    <li>Tap “+ Kaart” → tap oppervlak.</li>
+                    <li>Dubbel-tap op kaartje om te bewerken.</li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
 
     <!-- Canvas container -->
     <div id="canvas-container">

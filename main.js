@@ -814,6 +814,17 @@ document.getElementById('import-btn-modal').addEventListener('click', () => {
 
 
 
+// Help-panel open/sluit
+const helpToggle = document.getElementById('help-toggle');
+const helpPanel = document.getElementById('help-panel');
+const helpClose = document.getElementById('help-close');
+
+helpToggle.addEventListener('click', () => {
+    helpPanel.style.display = helpPanel.style.display === 'none' ? 'block' : 'none';
+});
+helpClose.addEventListener('click', () => {
+    helpPanel.style.display = 'none';
+});
 
 
 

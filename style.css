@@ -660,3 +660,88 @@ h2 {
     #export-btn {
         display: none !important;
     }
+}
+
+/* ─── Help-panel styling ─── */
+#help-toggle {
+    position: fixed;
+    top: 16px;
+    left: 16px;
+    background: rgb(116, 166, 231);
+    border: none;
+    border-radius: 8px;
+    padding: 6px;
+    font-size: 1.2rem;
+    z-index: 150;
+    cursor: pointer;
+    color: #c00 !important;
+    border: none !important;
+    /* overschrijf eventueel default styling */
+
+}
+
+
+
+.help-panel {
+    position: fixed;
+    top: 60px;
+    left: 16px;
+    width: 200px;
+    max-width: 80vw;
+    background: #fffbea;
+    border: 2px solid #eed877;
+    border-radius: 12px;
+    box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+    padding: 16px;
+    z-index: 150;
+}
+
+.help-panel h3 {
+    margin-top: 0;
+    font-size: 1rem;
+    color: #644100;
+}
+
+.help-panel ul {
+    padding-left: 1em;
+    margin: 8px 0;
+}
+
+.help-panel ul ul {
+    list-style: disc inside;
+}
+
+.modal-close#help-close {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: none;
+    border: none;
+    font-size: 1.1rem;
+    cursor: pointer;
+}
+
+/* Mobile help-toggle (❔) kleur en positie */
+@media (max-width: 600px) {
+    #help-toggle {
+        bottom: 16px;
+        top: auto;
+        left: 16px;
+        font-size: 1.4rem;
+        color: #c00;
+        /* rood vraagteken */
+    }
+}
+
+/* Mobile help-panel smaller maken */
+@media (max-width: 600px) {
+    .help-panel {
+        top: auto;
+        bottom: 80px;
+        left: 16px;
+        width: 240px;
+        /* vaste 200px breedte */
+        max-width: 240px;
+        border-radius: 12px;
+    }
+}
