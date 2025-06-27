@@ -651,7 +651,6 @@ removeImgBtn.addEventListener('click', () => {
 })();
 
 
-
 // EXPORT: maak JSON en download als bestand
 document.getElementById('export-btn').addEventListener('click', () => {
     const cards = [];
@@ -795,6 +794,23 @@ for (let i = 0; i < aantalBomen; i++) {
     });
 }
 
+// Pas ook hier op: dit loopt pas als element bestaat
+const optionsBtn = document.getElementById('options-btn');
+const optionsModal = document.getElementById('options-modal');
+const optionsClose = document.getElementById('options-close-btn');
+
+optionsBtn.addEventListener('click', () => optionsModal.style.display = 'flex');
+optionsClose.addEventListener('click', () => optionsModal.style.display = 'none');
+
+// Koppel modal-knoppen
+document.getElementById('export-btn-modal').addEventListener('click', () => {
+    document.getElementById('export-btn').click();
+    optionsModal.style.display = 'none';
+});
+document.getElementById('import-btn-modal').addEventListener('click', () => {
+    document.getElementById('import-btn').click();
+    optionsModal.style.display = 'none';
+});
 
 
 
