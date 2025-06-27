@@ -141,6 +141,8 @@ const riverMaterial = new THREE.MeshPhongMaterial({
 
 // 5. Mesh aanmaken en toevoegen aan de scene
 const riverMesh = new THREE.Mesh(riverGeometry, riverMaterial);
+riverMesh.position.y = 0.07; // een fractie boven de grond, waarde kun je finetunen (0.03–0.10)
+riverMesh.userData.surface = 'rivier';
 riverMesh.receiveShadow = true;
 scene.add(riverMesh);
 
@@ -319,46 +321,55 @@ function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     mesh.add(new THREE.Mesh(geo, matBack));
     return mesh;
 }
-
-async function create3DCard({ position, normal, text, icon, color, imgData }) {
-    // 1. Texture maken (zoals voorheen)
+async function create3DCard({ position, normal, text, icon, color, imgData, surface }) {
+    // 1. Texture maken
     const tex = await makeCardTexture({ text, icon, color, imgData, width: 256 });
 
-    // 2. Bepaal display-breedte (world-units)
+    // 2. Bepaal breedte/hoogte
     const displayWidth = 1.5;
     let displayHeight;
-
-    // 3. Wanneer er écht niets in staat behalve het icoon:
     if (!text && !imgData) {
-        // vierkant houden, zodat het icoon niet vervormt
         displayHeight = displayWidth;
-
     } else if (imgData) {
-        // jouw bestaande image-+text-logica:
-        // - eerst de raw image laden om de aspect ratio te bepalen
         const img = new Image();
         await new Promise(res => { img.onload = res; img.src = imgData; });
-        const imgAspect = img.width / img.height;
-        const imageDisplayHeight = displayWidth / imgAspect;
-        const textHeight = 0.6; // tunen naar jouw font-hoogte in world-units
-        displayHeight = textHeight + imageDisplayHeight;
-
+        const aspect = img.width / img.height;
+        displayHeight = 0.6 + (displayWidth / aspect);
     } else {
-        // alleen tekst (geen afbeelding): bepaal op basis van aantal regels
-        // stel bijvoorbeeld een vaste text-blok hoogte in:
         displayHeight = 0.8;
     }
 
-    // 4. Mesh aanmaken met de berekende verhouding
+    // 3. Maak mesh
     const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
-
-    // 5. Positioneren en toevoegen zoals voorheen
     mesh.castShadow = mesh.receiveShadow = true;
+
+    // 4. Plaats iets boven het oppervlak
     mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
-    mesh.lookAt(position.clone().add(normal));
+
+    if (surface === 'ground' || surface === 'rivier') {
+        // Rechtop en iets omhoog
+        mesh.rotation.set(0, 0, 0);
+        mesh.position.y += 0.2;
+
+        // Billboard naar camera
+        const target = new THREE.Vector3(
+            camera.position.x,
+            mesh.position.y,
+            camera.position.z
+        );
+        mesh.lookAt(target);
+
+    } else {
+        // Oriëntatie op stam/tak/etc.
+        mesh.lookAt(position.clone().add(normal));
+    }
+
+    // 5. Opslaan en toevoegen
     mesh.userData = { text, icon, color, imgData };
     scene.add(mesh);
 }
+
+
 
 
 // Pointer events
@@ -366,14 +377,24 @@ canvas.addEventListener('pointerdown', e => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
+
     if (pending3DCard) {
         const hit = raycaster.intersectObjects(scene.children, true)
-            .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
+            .find(i => ['trunk', 'root', 'canopy', 'ground', 'rivier']
+                .includes(i.object.userData.surface));
         if (!hit) return;
-        create3DCard({ position: hit.point, normal: hit.face.normal.clone().transformDirection(hit.object.matrixWorld), ...pending3DCard });
+
+        create3DCard({
+            position: hit.point,
+            normal: hit.face.normal.clone()
+                .transformDirection(hit.object.matrixWorld),
+            surface: hit.object.userData.surface,  // ← meegeven
+            ...pending3DCard
+        });
         pending3DCard = null;
         return;
     }
+
     const hitDrag = raycaster.intersectObjects(scene.children, true)
         .find(i => typeof i.object.userData.text === 'string');
     if (hitDrag) {
@@ -386,23 +407,51 @@ canvas.addEventListener('pointerdown', e => {
 });
 window.addEventListener('pointermove', e => {
     if (!draggingMesh) return;
+
+    // update pointer en raycaster
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
+
+    // raycast tegen oppervlakken
     const hit = raycaster.intersectObjects(scene.children, true)
-        .find(i => ['trunk', 'root', 'canopy', 'ground'].includes(i.object.userData.surface));
-    if (hit) {
-        const norm = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
-        const newPos = hit.point.clone().add(norm.multiplyScalar(0.01));
-        draggingMesh.position.copy(newPos);
+        .find(i => ['trunk', 'root', 'canopy', 'ground', 'rivier']
+            .includes(i.object.userData.surface));
+    if (!hit) return;
+
+    const surface = hit.object.userData.surface;
+    const norm = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    const newPos = hit.point.clone().add(norm.clone().multiplyScalar(0.01));
+
+    if (surface === 'ground' || surface === 'rivier') {
+        // rechtop en iets omhoog
+        draggingMesh.rotation.set(0, 0, 0);
+        newPos.y += 0.2;
+
+        // billboard naar camera
+        const camTarget = new THREE.Vector3(
+            camera.position.x,
+            newPos.y,
+            camera.position.z
+        );
+        draggingMesh.lookAt(camTarget);
+
+    } else {
+        // bestaande orientatie op stam/tak/etc.
         if (Math.abs(norm.y) > 0.9) {
             draggingMesh.up.set(0, 1, 0);
-            draggingMesh.lookAt(new THREE.Vector3(camera.position.x, newPos.y, camera.position.z));
+            draggingMesh.lookAt(
+                new THREE.Vector3(camera.position.x, newPos.y, camera.position.z)
+            );
         } else {
             draggingMesh.lookAt(newPos.clone().add(norm));
         }
     }
+
+    draggingMesh.position.copy(newPos);
 });
+
+
 canvas.addEventListener('pointerup', () => draggingMesh = null);
 canvas.addEventListener('dblclick', e => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
