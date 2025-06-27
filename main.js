@@ -791,7 +791,7 @@ document.getElementById('import-input').addEventListener('change', async e => {
     });
     cardsToRemove.forEach(obj => scene.remove(obj));
 
-
+    await document.fonts.ready;
     // daarna opnieuw aanmaken met de opgeslagen dimensies
     for (const card of cards) {
         const { text, icon, color, imgData, position, quaternion, displayWidth, displayHeight } = card;
