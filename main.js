@@ -35,15 +35,23 @@ camera.position.set(5, 12, 18);
 
 // Controls
 const controls = new OrbitControls(camera, renderer.domElement);
+
+const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+
 controls.enableDamping = true;
+controls.dampingFactor = isMobile ? 0.08 : 0.05;
+
 controls.enablePan = true;
 controls.screenSpacePanning = true;
+
 controls.minPolarAngle = 0.1;
 controls.maxPolarAngle = Math.PI / 2.01;
-controls.zoomSpeed = 1.5;
+
+controls.zoomSpeed = isMobile ? 1.2 : 0.25;
 
 controls.target.set(0, trunkHeight / 2, 0);
 controls.update();
+
 
 // Licht
 scene.add(new THREE.AmbientLight(0xffffff, 0.6));
