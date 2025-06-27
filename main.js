@@ -76,25 +76,34 @@ scene.add(trunk);
 });
 
 // Bladerbol (halve bol + sluitende kap)
+// 🍃 BOMERIGE BLADERKROON: DRIE GEËSCALLEERDE HALVE SFEREN 🍃
 {
-    const radius = 5.5;
-    const segments = 32;
-    const hemiGeo = new THREE.SphereGeometry(radius, segments, segments / 2, 0, Math.PI * 2, 0, Math.PI / 2);
-    const hemiMat = new THREE.MeshPhongMaterial({ color: 0x004d00, side: THREE.DoubleSide });
-    const hemisphere = new THREE.Mesh(hemiGeo, hemiMat);
-    hemisphere.castShadow = hemisphere.receiveShadow = true;
-    hemisphere.userData.surface = 'canopy';
-    hemisphere.position.set(0, trunkHeight, 0);
-    scene.add(hemisphere);
-    const capGeo = new THREE.CircleGeometry(radius, segments);
-    const capMat = new THREE.MeshPhongMaterial({ color: 0x004d00, side: THREE.DoubleSide });
-    const cap = new THREE.Mesh(capGeo, capMat);
-    cap.castShadow = cap.receiveShadow = true;
-    cap.userData.surface = 'canopy';
-    cap.rotation.x = -Math.PI / 2;
-    cap.position.set(0, trunkHeight, 0);
-    scene.add(cap);
+    const canopyColor = 0x004d00;
+    const canopyMat = new THREE.MeshPhongMaterial({ color: canopyColor, side: THREE.DoubleSide, shininess: 60 });
+
+    // Lagen van groot naar klein: radius en verticale offset
+    const layers = [
+        { radius: 6.0, offsetY: trunkHeight },  // onderste grote bol
+        { radius: 4.2, offsetY: trunkHeight + 1 },  // middelste bol
+        { radius: 3.0, offsetY: trunkHeight + 4 }   // bovenste kleine bol
+    ];
+
+    layers.forEach(({ radius, offsetY }) => {
+        const hemiGeo = new THREE.SphereGeometry(
+            radius,    // radius
+            32,        // breedte segments
+            16,        // hoogte segments
+            0, Math.PI * 2,
+            0, Math.PI / 2  // halve bol
+        );
+        const hemiMesh = new THREE.Mesh(hemiGeo, canopyMat);
+        hemiMesh.castShadow = hemiMesh.receiveShadow = true;
+        hemiMesh.userData.surface = 'canopy';
+        hemiMesh.position.set(0, offsetY, 0);
+        scene.add(hemiMesh);
+    });
 }
+
 
 // Grondvlak
 const ground = new THREE.Mesh(
@@ -645,23 +654,32 @@ function maakAchtergrondBoom3D({
     kleurStam = 0x61402a,
     kleurBlad = 0x257c3a
 }) {
-    // Minder extreme extra hoogte (max 4 ipv 20)
+    // Bereken stamlengte en maak stam
     const stamLengte = 5.6 * schaal + extraHoogte;
     const stamGeo = new THREE.CylinderGeometry(0.15 * schaal, 0.23 * schaal, stamLengte, 10);
     stamGeo.translate(0, stamLengte / 2, 0);
     const stamMat = new THREE.MeshPhongMaterial({ color: kleurStam });
     const stam = new THREE.Mesh(stamGeo, stamMat);
 
-    // Bladbol: onderkant zichtbaar (DoubleSide)
-    const bladGeo = new THREE.SphereGeometry(2.7 * schaal, 20, 13, 0, Math.PI * 2, 0, Math.PI / 1.7);
-    bladGeo.translate(0, stamLengte + 1.8 * schaal, 0);
+    // Bladbol: halve bol direct op de stamtop
+    const bladRadius = 2.7 * schaal;
+    const bladGeo = new THREE.SphereGeometry(
+        bladRadius,
+        20,
+        13,
+        0, Math.PI * 2,
+        0, Math.PI / 2    // thetaLength = π/2 voor halve bol
+    );
+    // Zet de halve bol precies op stamLengte
+    bladGeo.translate(0, stamLengte, 0);
     const bladMat = new THREE.MeshPhongMaterial({
         color: kleurBlad,
         shininess: 55,
-        side: THREE.DoubleSide // <- onderkant altijd zichtbaar
+        side: THREE.DoubleSide
     });
     const blad = new THREE.Mesh(bladGeo, bladMat);
 
+    // Groepeer en plaats op de grond
     const boom = new THREE.Group();
     boom.add(stam);
     boom.add(blad);
@@ -670,6 +688,7 @@ function maakAchtergrondBoom3D({
     boom.receiveShadow = false;
     scene.add(boom);
 }
+
 
 const aantalBomen = 700;
 for (let i = 0; i < aantalBomen; i++) {
