@@ -6,6 +6,7 @@ const trunkHeight = 8;
 const trunkRadiusTop = 0.8;
 const trunkRadiusBottom = 1.0;
 const popAnimations = [];
+const glowAnimations = [];
 
 // DOM-elementen
 const canvas = document.querySelector('#three-canvas');
@@ -200,7 +201,7 @@ typeBtns.forEach(btn => btn.addEventListener('click', () => {
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
 async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
-    // ─── SPECIAL CASE: alleen icoon ───
+    // ─── 1) ICON-ONLY CASE: géén tekst, géén afbeelding ───
     if (!text && !imgData) {
         const SIZE = width;
         const canvas2D = document.createElement('canvas');
@@ -212,8 +213,8 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
         ctx.fillStyle = color;
         ctx.fillRect(0, 0, SIZE, SIZE);
 
-        // icoon scherp en kleiner (40% van de canvas)
-        const fontSize = SIZE * 0.4;
+        // groot icoon (bijv. 60% van de kaart)
+        const fontSize = SIZE * 0.6;
         ctx.font = `${fontSize}px Quicksand`;
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
@@ -229,31 +230,28 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
         return texture;
     }
 
-    // ─── ALGEMENE CASE: tekst ± afbeelding ───
+    // ─── 2) GENERAL CASE: wél tekst en/of afbeelding ───
     const padding = 12;
     const iconSize = 24;
 
-    // 1. Meet de tekst
+    // 2a) Tekst meten
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
     tempCtx.font = `${iconSize}px Quicksand`;
     const lines = wrapText(tempCtx, text, width - 2 * padding);
     const numLines = Math.max(lines.length, 1);
 
-    // 2. Bereken hoogte voor tekstblok en afbeelding
-    const textBlockHeight = iconSize + numLines * iconSize * 1.2; // provisional
+    // 2b) Hoogte berekenen
+    const textBlockHeight = iconSize + numLines * iconSize * 1.2;
     let imgHeight = 0;
     if (imgData) {
         const img = new Image();
         await new Promise(res => { img.onload = res; img.src = imgData; });
-        const aspect = img.width / img.height;
-        imgHeight = (width - 2 * padding) / aspect;
+        imgHeight = (width - 2 * padding) / (img.width / img.height);
     }
-
-    // 3. Bereken totale canvas-hoogte
     const height = padding + textBlockHeight + (imgData ? imgHeight + padding : padding);
 
-    // 4. Maak high-DPI canvas
+    // 2c) High-DPI canvas
     const DPR = window.devicePixelRatio || 1;
     const canvas2D = document.createElement('canvas');
     canvas2D.width = width * DPR;
@@ -261,36 +259,32 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
     const ctx = canvas2D.getContext('2d');
     ctx.scale(DPR, DPR);
 
-    // 5. Achtergrond
+    // 2d) Achtergrond
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, width, height);
 
-    // 6. Icoon linksboven
+    // **LET OP: géén icoon tekenen!**
+
+    // 2e) Tekstregels tekenen
+    // 2e) Tekstregels gecentreerd, bovenaan beginnen
     ctx.font = `${iconSize}px Quicksand`;
     ctx.fillStyle = getComputedTextColor(color);
-    ctx.fillText(icon, padding, padding + iconSize);
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'top';
 
-    // 7. Dynamische font-size voor tekst
-    const availableTextHeight = textBlockHeight - iconSize;
-    const maxFontSize = iconSize;
-    const dynamicFontSize = Math.min(
-        maxFontSize,
-        (availableTextHeight / numLines) * 0.8
-    );
-    const lineHeight = dynamicFontSize * 1.2;
+    const x = width / 2;
+    const lineHeight = iconSize * 1.2;
 
-    // 8. Tekstregels tekenen
-    ctx.font = `${dynamicFontSize}px Quicksand`;
-    ctx.fillStyle = getComputedTextColor(color);
     lines.forEach((line, i) => {
         ctx.fillText(
             line,
-            padding,
-            padding + iconSize + lineHeight * (i + 1)
+            x,
+            padding + i * lineHeight
         );
     });
 
-    // 9. Afbeelding tekenen (indien aanwezig)
+
+    // 2f) Afbeelding tekenen (optioneel)
     if (imgData) {
         const img = new Image();
         img.src = imgData;
@@ -302,7 +296,7 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
         };
     }
 
-    // 10. Maak en configureer texture
+    // 2g) Texture aanmaken
     const texture = new THREE.CanvasTexture(canvas2D);
     texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
     texture.generateMipmaps = false;
@@ -388,13 +382,29 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
     // ─── 5. Data opslaan ───
     mesh.userData = { text, icon, color, imgData };
 
-    // ─── 6. Pop-animatie initialiseren ───
+    // ─── 6. Pop-in animatie initialiseren ───
     mesh.scale.set(0.001, 0.001, 0.001);
     mesh.userData.popStart = performance.now();
     popAnimations.push(mesh);
 
     // ─── 7. Mesh toevoegen ───
     scene.add(mesh);
+
+    // ─── 8. Glow-outline toevoegen ───
+    const glowGeo = new THREE.RingGeometry(displayWidth * 0.6, displayWidth * 1.1, 32);
+    const glowMat = new THREE.MeshBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+    });
+    const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+    glowMesh.position.copy(mesh.position);
+    glowMesh.lookAt(camera.position);
+    glowMesh.userData.glowStart = performance.now();
+    glowAnimations.push(glowMesh);
+    scene.add(glowMesh);
+
 }
 
 
@@ -591,13 +601,29 @@ removeImgBtn.addEventListener('click', () => {
 (function animate() {
     requestAnimationFrame(animate);
 
-    // ─── Pop-in animatie verwerken ───
+    // ─── 1. Dynamic Sky Gradient ───
+    const time = performance.now() * 0.001;
+    const skyT = (Math.sin(time * 0.05) + 1) / 2;
+    const topColor = `hsl(${200 + skyT * 40}, 70%, 60%)`;
+    const botColor = `hsl(${180 + skyT * 20}, 60%, 50%)`;
+    document.body.style.background = `linear-gradient(to bottom, ${topColor}, ${botColor})`;
+
+    // ─── 2. Pop-in animatie ───
+    // ─── Pop-in animatie verwerken (subtieler) ───
     const now = performance.now();
+    const popDuration = 400;      // duur in ms
+    const initialScale = 0.6;     // start­schaal
+
     for (let i = popAnimations.length - 1; i >= 0; i--) {
         const m = popAnimations[i];
-        const t = (now - m.userData.popStart) / 200; // 200ms duur
+        // genormaliseerde tijd [0,1]
+        const t = (now - m.userData.popStart) / popDuration;
+
         if (t < 1) {
-            const s = THREE.MathUtils.lerp(0, 1, t);
+            // ease-out quadratisch
+            const eased = 1 - Math.pow(1 - t, 2);
+            // schaal tussen initialScale → 1
+            const s = THREE.MathUtils.lerp(initialScale, 1, eased);
             m.scale.set(s, s, s);
         } else {
             m.scale.set(1, 1, 1);
@@ -605,22 +631,25 @@ removeImgBtn.addEventListener('click', () => {
         }
     }
 
-    // ─── Subtiele blad-sway animatie ───
-    const time = performance.now() * 0.001; // tijd in seconden
-    const swayAmplitude = 0.03;            // max rotatie (radians)
-    const swaySpeed = 1.2;                 // snelheid van de zwaai
 
-    scene.traverse(obj => {
-        if (obj.userData.surface === 'canopy') {
-            // Variatie per bol via y-positie
-            obj.rotation.z = Math.sin(time * swaySpeed + obj.position.y) * swayAmplitude;
+    // ─── 3. Glow-outline animatie ───
+    for (let i = glowAnimations.length - 1; i >= 0; i--) {
+        const g = glowAnimations[i];
+        const t2 = (now - g.userData.glowStart) / 300; // 300 ms
+        if (t2 < 1) {
+            const sc = THREE.MathUtils.lerp(1, 1.5, t2);
+            g.scale.set(sc, sc, sc);
+            g.material.opacity = THREE.MathUtils.lerp(0.6, 0, t2);
+        } else {
+            scene.remove(g);
+            glowAnimations.splice(i, 1);
         }
-    });
-
+    }
 
     controls.update();
     renderer.render(scene, camera);
 })();
+
 
 
 // EXPORT: maak JSON en download als bestand

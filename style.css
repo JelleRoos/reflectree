@@ -412,17 +412,25 @@ h2 {
     min-width: 60px;
 }
 
+/* Oorspronkelijke .type-btn hover */
 .type-btn:hover,
 .type-btn:focus {
     border-color: #7ecb8f;
     background: #f3ffe9;
-    transform: translateY(-3px) scale(1.045);
+    /* combineer translateY en scale */
+    transform: translateY(-3px) scale(1.08);
+    /* voeg je nieuwe box-shadow hier toe */
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
 
-.type-icoon {
-    font-size: 2em;
-    margin-bottom: 7px;
+/* Hover voor popup-btn blijft apart */
+.popup-btn:hover,
+.popup-btn:focus {
+    transform: scale(1.08);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.2);
 }
+
+
 
 /* === 1. Nieuwe knoplayout === */
 
