@@ -335,6 +335,7 @@ h2 {
     resize: vertical;
 }
 
+/* STYLING VOOR POPUP KNOPPEN (Algemeen) */
 .popup-btn {
     background: #ffe57f;
     color: #644100;
@@ -350,23 +351,8 @@ h2 {
     transition: background 0.17s, box-shadow 0.13s;
     outline: none;
     display: inline-block;
-}
-
-.popup-btn {
-    background: #ffe57f;
-    color: #644100;
-    border: none;
-    border-radius: 11px;
-    padding: 9px 19px;
-    font-size: 1em;
-    box-shadow: 0 3px 8px rgba(110, 160, 130, 0.08);
-    font-family: inherit;
-    font-weight: bold;
-    cursor: pointer;
-    margin: 3px 7px 3px 0;
-    transition: background 0.17s, box-shadow 0.13s;
-    outline: none;
-    display: inline-block;
+    vertical-align: middle;
+    /* Zorgt voor consistente uitlijning */
 }
 
 .popup-btn:hover,
@@ -388,6 +374,43 @@ h2 {
     color: #684d1a;
     font-size: 0.98em;
     text-align: left;
+}
+
+/* STYLING VOOR DE ICON DROPDOWN */
+#edit-card-icon {
+    font-size: 1.1em;
+    /* Iets kleiner dan voorheen, past beter bij de tekst */
+    padding: 8px 12px;
+    margin: 8px 0 16px 0;
+    /* Meer ruimte eronder */
+    border-radius: 8px;
+    /* Afgeronde hoeken */
+    border: 1.5px solid #eed877;
+    background: #fffde3;
+    color: #333;
+    box-shadow: 0 2px 7px rgba(250, 220, 120, 0.10);
+    width: 100%;
+    /* Volledige breedte */
+    box-sizing: border-box;
+    /* Padding en border binnen de breedte */
+    appearance: none;
+    /* Standaard browser-styling weghalen */
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url('data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%20viewBox%3D%220%200%20292.4%20292.4%22%3E%3Cpath%20fill%3D%22%23333333%22%20d%3D%22M287%20197.6c-4.8-4.8-12.5-4.8-17.3%200L146.2%2029.3%2022.7%20197.6c-4.8%204.8-4.8%2012.5%200%2017.3%204.8%204.8%2012.5%204.8%2017.3%200l106.2-106.2%20106.2%20106.2c4.8%204.8%2012.5%204.8%2017.3%200C291.8%20210.1%20291.8%20202.4%20287%20197.6z%22%2F%3E%3C%2Fsvg%3E');
+    /* Custom pijl-icoon */
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    background-size: 12px;
+    cursor: pointer;
+}
+
+#edit-card-icon:hover,
+#edit-card-icon:focus {
+    border-color: #7ecb8f;
+    /* Focus/hover kleur van de dropdown */
+    box-shadow: 0 4px 12px rgba(68, 160, 112, 0.12);
+    outline: none;
 }
 
 
@@ -811,4 +834,121 @@ h2 {
 .help-panel ul ul {
     margin-left: 0.8em;
     /* inspringen van de sub-lijst */
+}
+
+/* STYLING VOOR DE FORMULIERKNOPPEN IN DE POPUP (Algemeen) */
+.popup #card-edit-form {
+    text-align: right;
+    /* Lijnt alle inline/inline-block elementen (knoppen) rechts uit */
+}
+
+/* STYLING VOOR DE VERWIJDERKNOP (Kaart verwijderen) */
+#delete-card-btn {
+    background: #ffebe6;
+    /* Zeer lichtroze, subtiele achtergrond */
+    color: #c0392b;
+    /* Gedempte rode tekst */
+    border: 1px solid #d66a6a;
+    /* Zachte rode rand */
+    border-radius: 8px;
+    /* Afgeronde hoeken, passend bij andere knoppen */
+    padding: 7px 11px;
+    /* Kleinere padding */
+    font-size: 0.85em;
+    /* Kleiner lettertype */
+    font-weight: normal;
+    /* Niet vetgedrukt */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    /* Subtiele schaduw */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-top: 8px;
+    /* Ruimte boven de knop */
+    margin-left: 8px;
+    /* Ruimte tussen knoppen als ze op dezelfde regel staan */
+    display: inline-block;
+    /* Zorgt ervoor dat de breedte aan de inhoud aanpast */
+    box-sizing: border-box;
+    /* Padding en border binnen de breedte */
+    vertical-align: middle;
+    /* Voor consistente uitlijning */
+}
+
+#delete-card-btn::before {
+    content: '\2716\00a0';
+    /* Rood kruisje icoon + spatie */
+    font-family: 'Arial Unicode MS', 'Segoe UI Emoji', sans-serif;
+    /* Zorgt dat het icoon goed wordt weergegeven */
+    color: inherit;
+    /* Erft de tekstkleur van de knop */
+}
+
+#delete-card-btn:hover {
+    background: #ffdede;
+    /* Iets donkerder roze bij hover */
+    border-color: #e09090;
+    /* Donkerdere rand bij hover */
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+    /* Iets prominentere schaduw */
+    transform: translateY(-1px);
+    /* Klein omhoog effect */
+}
+
+#delete-card-btn:active {
+    background: #ffd0d0;
+    /* Nog donkerder bij actief */
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    /* Inset schaduw voor ingedrukt effect */
+    transform: translateY(0);
+}
+
+/* STYLING VOOR DE AFBEELDING VERWIJDEREN KNOP */
+#remove-card-img-btn {
+    background: #ffebe6;
+    /* Zelfde lichte rode achtergrond als verwijderknop */
+    color: #c0392b;
+    /* Zelfde gedempte rode tekstkleur */
+    border: 1px solid #d66a6a;
+    /* Zelfde zachte rode rand */
+    border-radius: 8px;
+    /* Zelfde afgeronde hoeken */
+    padding: 7px 11px;
+    /* Zelfde kleinere padding */
+    font-size: 0.85em;
+    /* Zelfde kleinere lettertype */
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+    /* Zelfde subtiele schaduw */
+    cursor: pointer;
+    transition: all 0.2s ease;
+    margin-left: 8px;
+    /* Ruimte tussen knoppen */
+    display: inline-block;
+    /* Zorgt ervoor dat het zich gedraagt als een inline knop */
+    vertical-align: middle;
+    /* Voor consistente uitlijning */
+    margin-top: 6px;
+    /* Ruimte boven de knop, kan variëren afhankelijk van omringende elementen */
+}
+
+#remove-card-img-btn::before {
+    content: '\2716\00a0';
+    /* Rood kruisje icoon + spatie */
+    font-family: 'Arial Unicode MS', 'Segoe UI Emoji', sans-serif;
+    /* Zorgt dat het icoon goed wordt weergegeven */
+    color: inherit;
+    /* Erft de tekstkleur van de knop */
+}
+
+#remove-card-img-btn:hover {
+    background: #ffdede;
+    /* Iets donkerder roze bij hover */
+    border-color: #e09090;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+}
+
+#remove-card-img-btn:active {
+    background: #ffd0d0;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+    transform: translateY(0);
 }

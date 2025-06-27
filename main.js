@@ -15,6 +15,7 @@ const removeImgBtn = document.getElementById('remove-card-img-btn');
 const editPopup = document.getElementById('card-edit-popup');
 const editForm = document.getElementById('card-edit-form');
 const editText = document.getElementById('edit-card-text');
+const editCardIconSelect = document.getElementById('edit-card-icon'); // Haal de icon-select op
 const editCancelBtn = document.getElementById('edit-cancel-btn');
 const deleteBtn = document.getElementById('delete-card-btn');
 const typePopup = document.getElementById('card-type-popup');
@@ -173,8 +174,6 @@ riverMesh.receiveShadow = true;
 scene.add(riverMesh);
 
 
-
-
 // Responsief
 window.addEventListener('resize', () => {
     camera.aspect = window.innerWidth / window.innerHeight;
@@ -196,122 +195,151 @@ const addCardBtn = document.getElementById('add-card-btn');
 addCardBtn.addEventListener('click', () => typePopup.style.display = 'flex');
 typeBtns.forEach(btn => btn.addEventListener('click', () => {
     typePopup.style.display = 'none';
-    pending3DCard = { text: '', icon: btn.dataset.icon, color: btn.dataset.color };
+    // Bij het aanmaken van een nieuwe kaart, stel de initiële userData in
+    pending3DCard = { text: '', icon: btn.dataset.icon, color: btn.dataset.color, imgData: null };
 }));
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
+/**
+ * Genereert de 2D-canvas texture voor een 3D-kaart.
+ * Deze functie bepaalt de inhoud en de afmetingen van het canvas op basis van tekst, icoon en afbeelding.
+ *
+ * @param {object} options
+ * @param {string} options.text - De tekst op de kaart.
+ * @param {string} options.icon - Het emoji-icoon voor de kaart.
+ * @param {string} options.color - De achtergrondkleur van de kaart (hex).
+ * @param {string|null} options.imgData - Base64 string van een afbeelding, indien aanwezig.
+ * @param {number} [options.width=256] - De breedte van het 2D canvas in pixels.
+ * @returns {HTMLCanvasElement} Het gegenereerde HTMLCanvasElement.
+ */
 async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
-    // ─── 1) ICON-ONLY CASE: géén tekst, géén afbeelding ───
-    if (!text && !imgData) {
-        const SIZE = width;
-        const canvas2D = document.createElement('canvas');
-        canvas2D.width = SIZE;
-        canvas2D.height = SIZE;
-        const ctx = canvas2D.getContext('2d');
-
-        // achtergrond
-        ctx.fillStyle = color;
-        ctx.fillRect(0, 0, SIZE, SIZE);
-
-        // groot icoon (60% van de kaart)
-        const fontSize = SIZE * 0.6;
-        ctx.font = `${fontSize}px Quicksand`;
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillStyle = getComputedTextColor(color);
-        ctx.fillText(icon, SIZE / 2, SIZE / 2);
-
-        const texture = new THREE.CanvasTexture(canvas2D);
-        texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-        texture.generateMipmaps = false;
-        texture.minFilter = THREE.LinearFilter;
-        texture.magFilter = THREE.LinearFilter;
-        texture.needsUpdate = true;
-        return texture;
-    }
-
-    // ─── 2) GENERAL CASE: wél tekst en/of afbeelding ───
     const padding = 12;
-    const iconSize = 24;
+    const baseItemSize = 24; // Base size for text elements and small icons
+    const iconImageSize = 24; // Size for the top-left icon/image if it were an image
+    const DPR = window.devicePixelRatio || 1;
 
-    // 2a) Tekst meten
     const tempCanvas = document.createElement('canvas');
     const tempCtx = tempCanvas.getContext('2d');
-    tempCtx.font = `${iconSize}px Quicksand`;
-    const lines = wrapText(tempCtx, text, width - 2 * padding);
-    const numLines = Math.max(lines.length, 1);
+    tempCtx.font = `${baseItemSize}px Quicksand`;
 
-    // 2b) Hoogte berekenen
-    const textBlockHeight = iconSize + numLines * iconSize * 1.2;
-    let imgHeight = 0;
+    // Calculate lines for text
+    const textLines = wrapText(tempCtx, text, width - (2 * padding));
+    const numTextLines = textLines.length;
+    const textLineHeight = baseItemSize * 1.2;
+    const textBlockHeight = numTextLines * textLineHeight;
+
+
+    const canvas2D = document.createElement('canvas');
+    const ctx = canvas2D.getContext('2d');
+
+    let canvasHeight;
+
+    // --- Case 1: Afbeelding aanwezig (vult binnen de padding, tekst erboven, icoon linksboven) ---
     if (imgData) {
         const img = new Image();
         await new Promise(res => { img.onload = res; img.src = imgData; });
-        imgHeight = (width - 2 * padding) / (img.width / img.height);
+
+        // Hoogte van het gebied bovenaan (icoon + padding + tekstblok)
+        const topContentHeight = padding + iconImageSize + (numTextLines > 0 ? padding : 0) + textBlockHeight;
+
+        // Beschikbare breedte voor de afbeelding (binnen padding)
+        const imgDisplayWidth = width - (2 * padding);
+        const imgAspectRatio = img.width / img.height;
+        const calculatedImgHeight = imgDisplayWidth / imgAspectRatio;
+
+        // Totale canvas hoogte: top content + padding + afbeelding + padding
+        canvasHeight = topContentHeight + padding + calculatedImgHeight + padding;
+
+        canvas2D.width = width * DPR;
+        canvas2D.height = canvasHeight * DPR;
+        ctx.scale(DPR, DPR);
+
+        // Achtergrondkleur voor de randen van de kaart
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, width, canvasHeight);
+
+        // 1. Teken het ICOON linksboven
+        ctx.font = `${baseItemSize}px Quicksand`;
+        ctx.textAlign = 'left';
+        ctx.textBaseline = 'top';
+        ctx.fillStyle = getComputedTextColor(color); // Tekstkleur gebaseerd op achtergrond
+        ctx.fillText(icon, padding, padding);
+
+        // 2. Teken de TEKST (onder het icoon, gecentreerd)
+        if (numTextLines > 0) {
+            ctx.font = `${baseItemSize}px Quicksand`;
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+            ctx.fillStyle = getComputedTextColor(color); // Tekstkleur gebaseerd op achtergrond
+
+            const textStartX = width / 2;
+            const textStartY = padding + iconImageSize + padding; // Start Y na het icoongebied + padding
+
+            textLines.forEach((line, i) => {
+                ctx.fillText(line, textStartX, textStartY + i * textLineHeight);
+            });
+        }
+
+        // 3. Teken de AFBEELDING (onder de tekst, binnen padding)
+        const imageStartY = topContentHeight + padding; // Afbeelding begint onder de top content + padding
+        ctx.drawImage(img, padding, imageStartY, imgDisplayWidth, calculatedImgHeight);
+
+    } else { // --- Case 2: Geen afbeelding (icoon + tekst, of groot icoon voor lege kaart) ---
+        let currentIconSize = baseItemSize;
+
+        // Bepaal hoogte voor "lege" kaart (geen tekst, geen afbeelding)
+        if (numTextLines === 0) {
+            currentIconSize = width * 0.5; // Zeer groot icoon voor lege kaarten
+            canvasHeight = width; // Maak lege kaartjes vierkant
+        } else {
+            // Reguliere kaart (klein icoon + tekst eronder)
+            const headerHeight = baseItemSize + padding * 2; // Hoogte van het gebied voor het kleine icoon
+            canvasHeight = headerHeight + textBlockHeight + padding;
+        }
+
+        canvas2D.width = width * DPR;
+        canvas2D.height = canvasHeight * DPR;
+        ctx.scale(DPR, DPR);
+
+        // Achtergrond
+        ctx.fillStyle = color;
+        ctx.fillRect(0, 0, width, canvasHeight);
+
+        // Teken het icoon
+        ctx.font = `${currentIconSize}px Quicksand`;
+        ctx.fillStyle = getComputedTextColor(color);
+
+        if (numTextLines === 0) {
+            // Groot icoon gecentreerd in het vierkante lege kaartje
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText(icon, width / 2, canvasHeight / 2); // Centreer in vierkant canvas
+        } else {
+            // Klein icoon linksboven
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(icon, padding, padding);
+        }
+
+        // Teken de tekst (indien aanwezig)
+        if (numTextLines > 0) {
+            ctx.font = `${baseItemSize}px Quicksand`;
+            ctx.fillStyle = getComputedTextColor(color);
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'top';
+
+            const textStartX = width / 2;
+            // Tekst start onder het icoongebied bij kleine iconen
+            const textStartY = (baseItemSize + padding * 2);
+
+            textLines.forEach((line, i) => {
+                ctx.fillText(line, textStartX, textStartY + i * textLineHeight);
+            });
+        }
     }
-    const height = padding + textBlockHeight + (imgData ? imgHeight + padding : padding);
 
-    // 2c) High-DPI canvas
-    const DPR = window.devicePixelRatio || 1;
-    const canvas2D = document.createElement('canvas');
-    canvas2D.width = width * DPR;
-    canvas2D.height = height * DPR;
-    const ctx = canvas2D.getContext('2d');
-    ctx.scale(DPR, DPR);
-
-    // 2d) Achtergrond
-    ctx.fillStyle = color;
-    ctx.fillRect(0, 0, width, height);
-
-    // 2d.1) Icoon linksboven
-    ctx.font = `${iconSize}px Quicksand`;
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillStyle = getComputedTextColor(color);
-    ctx.fillText(icon, padding, padding);
-
-    // 2e) Tekstregels tekenen (onder het icoon)
-    ctx.font = `${iconSize}px Quicksand`;
-    ctx.fillStyle = getComputedTextColor(color);
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'top';
-
-    const x = width / 2;
-    const lineHeight = iconSize * 1.2;
-    const textStartY = padding + iconSize + 4;
-
-    lines.forEach((line, i) => {
-        ctx.fillText(
-            line,
-            x,
-            textStartY + i * lineHeight
-        );
-    });
-
-    // 2f) Afbeelding tekenen (optioneel)
-    if (imgData) {
-        const img = new Image();
-        img.src = imgData;
-        img.onload = () => {
-            const imgW = width - 2 * padding;
-            const imgH = imgW / (img.width / img.height);
-            ctx.drawImage(img, padding, padding + textBlockHeight + padding, imgW, imgH);
-            texture.needsUpdate = true;
-        };
-    }
-
-    // 2g) Texture aanmaken
-    const texture = new THREE.CanvasTexture(canvas2D);
-    texture.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    texture.generateMipmaps = false;
-    texture.minFilter = THREE.LinearFilter;
-    texture.magFilter = THREE.LinearFilter;
-    texture.needsUpdate = true;
-    return texture;
+    return canvas2D; // Retourneer het canvas zelf
 }
-
-
-
 
 // Helpers
 function wrapText(ctx, text, maxWidth) {
@@ -336,7 +364,7 @@ function getComputedTextColor(hex) {
     return ((r * 299 + g * 587 + b * 114) / 1000) < 160 ? '#fffbea' : '#333';
 }
 
-function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
+function makeCardMesh(texture, backColor, w, h) {
     const geo = new THREE.PlaneGeometry(w, h);
     const matFront = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.FrontSide });
     const matBack = new THREE.MeshBasicMaterial({ color: backColor, side: THREE.BackSide });
@@ -345,29 +373,39 @@ function makeCardMesh(texture, backColor, w = 1.5, h = 0.8) {
     return mesh;
 }
 
+/**
+ * Maakt een 3D-kaart mesh en voegt deze toe aan de scene.
+ * De afmetingen van de kaart worden dynamisch berekend op basis van de inhoud.
+ *
+ * @param {object} options
+ * @param {THREE.Vector3} options.position - De positie van de kaart.
+ * @param {THREE.Vector3} options.normal - De normaal van het oppervlak waarop de kaart geplaatst wordt.
+ * @param {string} options.text - De tekst voor de kaart.
+ * @param {string} options.icon - Het icoon voor de kaart.
+ * @param {string} options.color - De kleur van de kaart.
+ * @param {string|null} options.imgData - Base64 string van een afbeelding, indien aanwezig.
+ * @param {string} options.surface - Het type oppervlak waarop de kaart geplaatst wordt ('ground', 'trunk', etc.).
+ * @returns {THREE.Mesh} De gemaakte 3D-kaart mesh.
+ */
 async function create3DCard({ position, normal, text, icon, color, imgData, surface }) {
-    // ─── 1. Texture maken ───
-    const tex = await makeCardTexture({ text, icon, color, imgData, width: 256 });
+    // Genereer het 2D canvas voor de texture
+    const textureCanvas = await makeCardTexture({ text, icon, color, imgData, width: 256 });
+    const tex = new THREE.CanvasTexture(textureCanvas);
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    tex.generateMipmaps = false;
+    tex.minFilter = THREE.LinearFilter;
+    tex.magFilter = THREE.LinearFilter;
+    tex.needsUpdate = true;
 
-    // ─── 2. Breedte/hoogte bepalen ───
-    const displayWidth = 1.5;
-    let displayHeight;
-    if (!text && !imgData) {
-        displayHeight = displayWidth;
-    } else if (imgData) {
-        const img = new Image();
-        await new Promise(res => { img.onload = res; img.src = imgData; });
-        const aspect = img.width / img.height;
-        displayHeight = 0.6 + (displayWidth / aspect);
-    } else {
-        displayHeight = 0.8;
-    }
+    const displayWidth = 1.5; // Vaste breedte voor de 3D-kaart
+    // Bereken de 3D-hoogte op basis van de aspect ratio van het 2D canvas
+    const displayHeight = (textureCanvas.height / textureCanvas.width) * displayWidth;
 
-    // ─── 3. Mesh maken ───
+    // Maak de 3D-mesh met de berekende afmetingen
     const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
     mesh.castShadow = mesh.receiveShadow = true;
 
-    // ─── 4. Positioneren en oriënteren ───
+    // ─── Positioneren en oriënteren ───
     mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
     if (surface === 'ground' || surface === 'rivier') {
         mesh.rotation.set(0, 0, 0);
@@ -383,18 +421,19 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
         mesh.lookAt(position.clone().add(normal));
     }
 
-    // ─── 5. Data opslaan ───
-    mesh.userData = { text, icon, color, imgData };
+    // ─── Data opslaan ───
+    // Sla displayWidth en displayHeight op voor export/import en dynamische bewerking
+    mesh.userData = { text, icon, color, imgData, displayWidth, displayHeight };
 
-    // ─── 6. Pop-in animatie initialiseren ───
+    // ─── Pop-in animatie initialiseren ───
     mesh.scale.set(0.001, 0.001, 0.001);
     mesh.userData.popStart = performance.now();
     popAnimations.push(mesh);
 
-    // ─── 7. Mesh toevoegen ───
+    // ─── Mesh toevoegen ───
     scene.add(mesh);
 
-    // ─── 8. Glow-outline toevoegen ───
+    // ─── Glow-outline toevoegen ───
     const glowGeo = new THREE.RingGeometry(displayWidth * 0.6, displayWidth * 1.1, 32);
     const glowMat = new THREE.MeshBasicMaterial({
         color,
@@ -409,10 +448,8 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
     glowAnimations.push(glowMesh);
     scene.add(glowMesh);
 
+    return mesh;
 }
-
-
-
 
 
 // Pointer events
@@ -431,7 +468,7 @@ canvas.addEventListener('pointerdown', e => {
             position: hit.point,
             normal: hit.face.normal.clone()
                 .transformDirection(hit.object.matrixWorld),
-            surface: hit.object.userData.surface,  // ← meegeven
+            surface: hit.object.userData.surface,
             ...pending3DCard
         });
         pending3DCard = null;
@@ -505,7 +542,8 @@ canvas.addEventListener('dblclick', e => {
     if (!hitEdit) return;
     meshBeingEdited = hitEdit.object;
     editText.value = meshBeingEdited.userData.text;
-    editImgUpload.value = '';
+    editCardIconSelect.value = meshBeingEdited.userData.icon; // Stel de waarde van de icon dropdown in
+    editImgUpload.value = ''; // Leeg de file input
     removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
     editPopup.style.display = 'flex';
 });
@@ -535,6 +573,7 @@ canvas.addEventListener('touchend', function (e) {
         if (hitEdit) {
             meshBeingEdited = hitEdit.object;
             editText.value = meshBeingEdited.userData.text;
+            editCardIconSelect.value = meshBeingEdited.userData.icon; // Stel de waarde van de icon dropdown in
             editImgUpload.value = '';
             removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
             editPopup.style.display = 'flex';
@@ -562,24 +601,59 @@ function getUploadedImgData(file) {
 editCancelBtn.addEventListener('click', () => { editPopup.style.display = 'none'; meshBeingEdited = null; });
 editForm.addEventListener('submit', async event => {
     event.preventDefault();
-    // Update tekst
-    meshBeingEdited.userData.text = editText.value.trim();
+    if (!meshBeingEdited) return; // Veiligheidscheck
 
-    // Update plaatje als er een file is geselecteerd
+    // Update tekst en icoon uit de dropdown
+    meshBeingEdited.userData.text = editText.value.trim();
+    meshBeingEdited.userData.icon = editCardIconSelect.value;
+
+    // Update afbeelding als er een file is geselecteerd
     if (editImgUpload.files[0]) {
         meshBeingEdited.userData.imgData = await getUploadedImgData(editImgUpload.files[0]);
     }
 
-    // Nieuwe texture genereren en toepassen
-    const newTex = await makeCardTexture({
+    // Genereer het nieuwe 2D canvas en de texture
+    const newTextureCanvas = await makeCardTexture({
         text: meshBeingEdited.userData.text,
         icon: meshBeingEdited.userData.icon,
         color: meshBeingEdited.userData.color,
         imgData: meshBeingEdited.userData.imgData,
         width: 256
     });
+
+    const newTex = new THREE.CanvasTexture(newTextureCanvas);
+    newTex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    newTex.generateMipmaps = false;
+    newTex.minFilter = THREE.LinearFilter;
+    newTex.magFilter = THREE.LinearFilter;
+    newTex.needsUpdate = true;
+
+    // Gooi de oude texture weg om geheugenlekken te voorkomen
+    if (meshBeingEdited.material.map) {
+        meshBeingEdited.material.map.dispose();
+    }
+    // Pas de nieuwe texture toe
     meshBeingEdited.material.map = newTex;
     meshBeingEdited.material.needsUpdate = true;
+
+    // Bereken de nieuwe 3D hoogte op basis van de nieuwe canvas afmetingen
+    const newDisplayHeight = (newTextureCanvas.height / newTextureCanvas.width) * meshBeingEdited.userData.displayWidth;
+
+    // Update de geometrie van de mesh als de hoogte significant verandert
+    // Een kleine tolerantie om onnodige updates te voorkomen
+    if (Math.abs(newDisplayHeight - meshBeingEdited.userData.displayHeight) > 0.001) {
+        // Gooi de oude geometrie weg en maak een nieuwe aan
+        meshBeingEdited.geometry.dispose();
+        meshBeingEdited.geometry = new THREE.PlaneGeometry(meshBeingEdited.userData.displayWidth, newDisplayHeight);
+
+        // Update ook de geometrie van de achterkant van de kaart (indien aanwezig als kindmesh)
+        if (meshBeingEdited.children[0] && meshBeingEdited.children[0].isMesh) {
+            meshBeingEdited.children[0].geometry.dispose();
+            meshBeingEdited.children[0].geometry = new THREE.PlaneGeometry(meshBeingEdited.userData.displayWidth, newDisplayHeight);
+        }
+        // Update de opgeslagen displayHeight in userData
+        meshBeingEdited.userData.displayHeight = newDisplayHeight;
+    }
 
     // Popup sluiten
     editPopup.style.display = 'none';
@@ -598,9 +672,14 @@ deleteBtn.addEventListener('click', () => {
 removeImgBtn.addEventListener('click', () => {
     if (!meshBeingEdited) return;
     meshBeingEdited.userData.imgData = null;
-    editImgUpload.value = '';
+    editImgUpload.value = ''; // Leeg de file input zodat er geen "vorige" afbeelding staat
     removeImgBtn.style.display = 'none';
+
+    // Genereer de texture opnieuw zonder afbeelding om de wijziging direct te tonen
+    // (de submit-handler doet dit ook, maar dit is voor direct visuele feedback)
+    editForm.dispatchEvent(new Event('submit', { cancelable: true })); // Trigger form submit
 });
+
 
 (function animate() {
     requestAnimationFrame(animate);
@@ -612,8 +691,7 @@ removeImgBtn.addEventListener('click', () => {
     const botColor = `hsl(${180 + skyT * 20}, 60%, 50%)`;
     document.body.style.background = `linear-gradient(to bottom, ${topColor}, ${botColor})`;
 
-    // ─── 2. Pop-in animatie ───
-    // ─── Pop-in animatie verwerken (subtieler) ───
+    // ─── 2. Pop-in animatie (subtieler) ───
     const now = performance.now();
     const popDuration = 400;      // duur in ms
     const initialScale = 0.6;     // start­schaal
@@ -634,7 +712,6 @@ removeImgBtn.addEventListener('click', () => {
             popAnimations.splice(i, 1);
         }
     }
-
 
     // ─── 3. Glow-outline animatie ───
     for (let i = glowAnimations.length - 1; i >= 0; i--) {
@@ -668,9 +745,9 @@ document.getElementById('export-btn').addEventListener('click', () => {
                 imgData: obj.userData.imgData,
                 position: obj.position.toArray(),
                 quaternion: obj.quaternion.toArray(),
-                // optioneel: breedte/hoogte van je kaartvlak:
-                width: obj.geometry.parameters.width,
-                height: obj.geometry.parameters.height
+                // Exporteer de berekende breedte en hoogte
+                displayWidth: obj.userData.displayWidth,
+                displayHeight: obj.userData.displayHeight
             });
         }
     });
@@ -700,30 +777,64 @@ document.getElementById('import-input').addEventListener('change', async e => {
     try {
         cards = JSON.parse(text);
     } catch {
-        return alert('Ongeldig JSON-bestand');
+        // Gebruik een custom modal of console.error in plaats van alert
+        console.error('Ongeldig JSON-bestand ingeladen.');
+        return; // Stop verdere uitvoering
     }
 
-    // eerst alle bestaande kaarten verwijderen
+    // eerst alle bestaande kaarten verwijderen (behalve de boom-onderdelen)
+    const cardsToRemove = [];
     scene.traverse(obj => {
         if (obj.userData && typeof obj.userData.text === 'string') {
-            scene.remove(obj);
+            cardsToRemove.push(obj);
         }
     });
+    cardsToRemove.forEach(obj => scene.remove(obj));
 
-    // daarna opnieuw aanmaken
+
+    // daarna opnieuw aanmaken met de opgeslagen dimensies
     for (const card of cards) {
-        const { text, icon, color, imgData, position, quaternion, width, height } = card;
-        // maak texture & mesh zoals normaal, geef width/height door
-        const tex = await makeCardTexture({ text, icon, color, imgData, width: 256 });
-        const mesh = makeCardMesh(tex, color, width, height);
+        const { text, icon, color, imgData, position, quaternion, displayWidth, displayHeight } = card;
+
+        // Maak de 2D canvas texture
+        const textureCanvas = await makeCardTexture({ text, icon, color, imgData, width: 256 });
+        const tex = new THREE.CanvasTexture(textureCanvas);
+        tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+        tex.generateMipmaps = false;
+        tex.minFilter = THREE.LinearFilter;
+        tex.magFilter = THREE.LinearFilter;
+        tex.needsUpdate = true;
+
+        // Maak de mesh met de opgeslagen displayWidth en displayHeight
+        const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
         mesh.castShadow = mesh.receiveShadow = true;
 
-        // positie en oriëntatie herstellen
+        // Positie en oriëntatie herstellen
         mesh.position.fromArray(position);
         mesh.quaternion.fromArray(quaternion);
 
-        mesh.userData = { text, icon, color, imgData };
+        // Sla alle userData weer op
+        mesh.userData = { text, icon, color, imgData, displayWidth, displayHeight };
         scene.add(mesh);
+
+        // Voeg de pop-in animatie en glow toe voor de geïmporteerde kaarten (optioneel, voor visueel effect)
+        mesh.scale.set(0.001, 0.001, 0.001); // Start klein voor pop-in
+        mesh.userData.popStart = performance.now();
+        popAnimations.push(mesh);
+
+        const glowGeo = new THREE.RingGeometry(displayWidth * 0.6, displayWidth * 1.1, 32);
+        const glowMat = new THREE.MeshBasicMaterial({
+            color,
+            transparent: true,
+            opacity: 0.6,
+            side: THREE.DoubleSide
+        });
+        const glowMesh = new THREE.Mesh(glowGeo, glowMat);
+        glowMesh.position.copy(mesh.position);
+        glowMesh.lookAt(camera.position); // Zorg dat de glow ook naar de camera kijkt
+        glowMesh.userData.glowStart = performance.now();
+        glowAnimations.push(glowMesh);
+        scene.add(glowMesh);
     }
 });
 
@@ -812,7 +923,7 @@ document.getElementById('export-btn-modal').addEventListener('click', () => {
     optionsModal.style.display = 'none';
 });
 document.getElementById('import-btn-modal').addEventListener('click', () => {
-    document.getElementById('import-btn').click();
+    document.getElementById('import-input').click();
     optionsModal.style.display = 'none';
 });
 
@@ -832,7 +943,7 @@ helpClose.addEventListener('click', () => {
 
 
 
-// Expose globals
+// Expose globals (voor debugging)
 window.THREE = THREE;
 window.scene = scene;
 window.camera = camera;

@@ -31,6 +31,21 @@
     <div id="card-edit-popup" class="popup-overlay" style="display:none;">
         <div class="popup">
             <h3>Kaart bewerken</h3>
+            <label>Icoon:
+                <select id="edit-card-icon">
+                    <option value="🌱">Wortel 🌱</option>
+                    <option value="🌳">Stam 🌳</option>
+                    <option value="🌿">Tak 🌿</option>
+                    <option value="☁️">Lucht ☁️</option>
+                    <option value="🌊">Rivier 🌊</option>
+                    <!-- Voeg hier extra iconen toe -->
+                    <option value="🔥">Vuur 🔥</option>
+                    <option value="💡">Idee 💡</option>
+                    <!-- Nieuwe iconen hieronder -->
+                    <option value="⛈️">Onweer ⛈️</option>
+                    <option value="">Geen icoon</option>
+                </select>
+            </label>
             <form id="card-edit-form" autocomplete="off">
                 <label>Tekst:<br>
                     <textarea id="edit-card-text" rows="3" style="width:100%;"></textarea>
@@ -38,12 +53,16 @@
                 <label>Afbeelding uploaden:
                     <input id="edit-card-img-upload" type="file" accept="image/*">
                 </label>
-                <button id="remove-card-img-btn" type="button" style="margin:6px 0; display:none;">Afbeelding
-                    verwijderen</button>
-                <button type="submit" class="popup-btn" style="margin-right:12px;">Opslaan</button>
-                <button type="button" id="edit-cancel-btn" class="popup-btn">Annuleren</button>
-                <button type="button" id="delete-card-btn" style="margin-top:8px; color:#c00;">Kaartje
-                    verwijderen</button>
+                <!-- Knoppen logisch gegroepeerd en geplaatst voor betere flow -->
+                <div style="text-align: right; margin-top: 10px;">
+                    <button type="submit" class="popup-btn">Opslaan</button>
+                    <button type="button" id="edit-cancel-btn" class="popup-btn">Annuleren</button>
+                    <!-- Plaats 'Afbeelding verwijderen' naast 'Kaartje verwijderen' -->
+                    <button type="button" id="remove-card-img-btn" style="display:none;">Afbeelding
+                        verwijderen</button>
+                    <button type="button" id="delete-card-btn">Kaartje
+                        verwijderen</button>
+                </div>
             </form>
         </div>
     </div>
