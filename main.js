@@ -213,7 +213,7 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
         ctx.fillStyle = color;
         ctx.fillRect(0, 0, SIZE, SIZE);
 
-        // groot icoon (bijv. 60% van de kaart)
+        // groot icoon (60% van de kaart)
         const fontSize = SIZE * 0.6;
         ctx.font = `${fontSize}px Quicksand`;
         ctx.textAlign = 'center';
@@ -263,10 +263,14 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
     ctx.fillStyle = color;
     ctx.fillRect(0, 0, width, height);
 
-    // **LET OP: géén icoon tekenen!**
+    // 2d.1) Icoon linksboven
+    ctx.font = `${iconSize}px Quicksand`;
+    ctx.textAlign = 'left';
+    ctx.textBaseline = 'top';
+    ctx.fillStyle = getComputedTextColor(color);
+    ctx.fillText(icon, padding, padding);
 
-    // 2e) Tekstregels tekenen
-    // 2e) Tekstregels gecentreerd, bovenaan beginnen
+    // 2e) Tekstregels tekenen (onder het icoon)
     ctx.font = `${iconSize}px Quicksand`;
     ctx.fillStyle = getComputedTextColor(color);
     ctx.textAlign = 'center';
@@ -274,15 +278,15 @@ async function makeCardTexture({ text, icon, color, imgData, width = 256 }) {
 
     const x = width / 2;
     const lineHeight = iconSize * 1.2;
+    const textStartY = padding + iconSize + 4;
 
     lines.forEach((line, i) => {
         ctx.fillText(
             line,
             x,
-            padding + i * lineHeight
+            textStartY + i * lineHeight
         );
     });
-
 
     // 2f) Afbeelding tekenen (optioneel)
     if (imgData) {
