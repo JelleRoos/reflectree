@@ -40,7 +40,7 @@ controls.enablePan = true;
 controls.screenSpacePanning = true;
 controls.minPolarAngle = 0.1;
 controls.maxPolarAngle = Math.PI / 2.01;
-controls.zoomSpeed = 0.15;
+controls.zoomSpeed = 1.5;
 
 controls.target.set(0, trunkHeight / 2, 0);
 controls.update();
@@ -730,6 +730,9 @@ removeImgBtn.addEventListener('click', () => {
     controls.update();
     renderer.render(scene, camera);
 })();
+
+
+
 
 
 // EXPORT: maak JSON en download als bestand
