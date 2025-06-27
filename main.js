@@ -76,34 +76,49 @@ scene.add(trunk);
     scene.add(group);
 });
 
-// Bladerbol (halve bol + sluitende kap)
-// 🍃 BOMERIGE BLADERKROON: DRIE GEËSCALLEERDE HALVE SFEREN 🍃
+
+// 🍃 BOMERIGE BLADERKROON MET GESLOTEN ONDERKANT 🍃
 {
     const canopyColor = 0x004d00;
-    const canopyMat = new THREE.MeshPhongMaterial({ color: canopyColor, side: THREE.DoubleSide, shininess: 60 });
+    const canopyMat = new THREE.MeshPhongMaterial({
+        color: canopyColor,
+        side: THREE.DoubleSide,
+        shininess: 60
+    });
 
     // Lagen van groot naar klein: radius en verticale offset
     const layers = [
-        { radius: 6.0, offsetY: trunkHeight },  // onderste grote bol
-        { radius: 4.2, offsetY: trunkHeight + 1 },  // middelste bol
-        { radius: 3.0, offsetY: trunkHeight + 4 }   // bovenste kleine bol
+        { radius: 6.0, offsetY: trunkHeight },       // onderste grote bol
+        { radius: 4.2, offsetY: trunkHeight + 2 },   // middelste bol
+        { radius: 3.0, offsetY: trunkHeight + 4 }    // bovenste kleine bol
     ];
 
     layers.forEach(({ radius, offsetY }) => {
+        // 1) Halve bol
         const hemiGeo = new THREE.SphereGeometry(
-            radius,    // radius
-            32,        // breedte segments
-            16,        // hoogte segments
+            radius, 32, 16,
             0, Math.PI * 2,
-            0, Math.PI / 2  // halve bol
+            0, Math.PI / 2
         );
+        hemiGeo.translate(0, offsetY, 0);
         const hemiMesh = new THREE.Mesh(hemiGeo, canopyMat);
         hemiMesh.castShadow = hemiMesh.receiveShadow = true;
         hemiMesh.userData.surface = 'canopy';
-        hemiMesh.position.set(0, offsetY, 0);
+
+        // 2) Cap om de onderkant te dichten
+        const capGeo = new THREE.CircleGeometry(radius, 32);
+        capGeo.rotateX(-Math.PI / 2);
+        capGeo.translate(0, offsetY, 0);
+        const capMesh = new THREE.Mesh(capGeo, canopyMat);
+        capMesh.castShadow = capMesh.receiveShadow = true;
+        capMesh.userData.surface = 'canopy';
+
+        // 3) Voeg beide toe
         scene.add(hemiMesh);
+        scene.add(capMesh);
     });
 }
+
 
 
 // Grondvlak
@@ -589,6 +604,19 @@ removeImgBtn.addEventListener('click', () => {
             popAnimations.splice(i, 1);
         }
     }
+
+    // ─── Subtiele blad-sway animatie ───
+    const time = performance.now() * 0.001; // tijd in seconden
+    const swayAmplitude = 0.03;            // max rotatie (radians)
+    const swaySpeed = 1.2;                 // snelheid van de zwaai
+
+    scene.traverse(obj => {
+        if (obj.userData.surface === 'canopy') {
+            // Variatie per bol via y-positie
+            obj.rotation.z = Math.sin(time * swaySpeed + obj.position.y) * swayAmplitude;
+        }
+    });
+
 
     controls.update();
     renderer.render(scene, camera);
