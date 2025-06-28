@@ -30,6 +30,9 @@
     <!-- Popup om kaart te bewerken -->
     <div id="card-edit-popup" class="popup-overlay" style="display:none;">
         <div class="popup">
+            <button type="button" class="modal-close" id="edit-cancel-btn" aria-label="Sluiten">&times;</button>
+
+
             <h3>Kaart bewerken</h3>
             <label>Icoon:
                 <select id="edit-card-icon">
@@ -52,16 +55,16 @@
                 <label>Afbeelding uploaden:
                     <input id="edit-card-img-upload" type="file" accept="image/*">
                 </label>
-                <!-- Knoppen logisch gegroepeerd en geplaatst voor betere flow -->
-                <div style="text-align: right; margin-top: 10px;">
+                <!-- Knoppen netjes horizontaal uitgelijnd -->
+                <div class="popup-btn-row">
                     <button type="submit" class="popup-btn">Opslaan</button>
-                    <button type="button" id="edit-cancel-btn" class="popup-btn">Annuleren</button>
-                    <!-- Plaats 'Afbeelding verwijderen' naast 'Kaartje verwijderen' -->
-                    <button type="button" id="remove-card-img-btn" style="display:none;">Afbeelding
-                        verwijderen</button>
-                    <button type="button" id="delete-card-btn">Kaartje
+                    <button type="button" id="remove-card-img-btn" class="popup-btn popup-btn-danger"
+                        style="display:none;">Afbeelding verwijderen</button>
+                    <button type="button" id="delete-card-btn" class="popup-btn popup-btn-danger">Kaartje
                         verwijderen</button>
                 </div>
+
+
             </form>
         </div>
     </div>

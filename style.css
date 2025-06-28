@@ -306,6 +306,7 @@ h2 {
 }
 
 .popup {
+    position: relative;
     background: #fffbea;
     border-radius: 14px;
     padding: 32px 36px 26px 36px;
@@ -338,6 +339,31 @@ h2 {
 }
 
 /* STYLING VOOR POPUP KNOPPEN (Algemeen) */
+/* Kruisje rechtsboven in de popup */
+.modal-close {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    background: none;
+    border: none;
+    color: #e16767;
+    font-size: 1.7em;
+    font-weight: bold;
+    cursor: pointer;
+    z-index: 120;
+    transition: color 0.16s;
+    line-height: 1;
+}
+
+.modal-close:hover,
+.modal-close:focus {
+    color: #b73131;
+    background: #ffe0e0;
+    border-radius: 50%;
+    outline: none;
+}
+
+/* Basisknop */
 .popup-btn {
     background: #ffe57f;
     color: #644100;
@@ -350,18 +376,43 @@ h2 {
     font-weight: bold;
     cursor: pointer;
     margin: 3px 7px 3px 0;
-    transition: background 0.17s, box-shadow 0.13s;
+    transition: background 0.17s, box-shadow 0.13s, color 0.17s;
     outline: none;
     display: inline-block;
     vertical-align: middle;
-    /* Zorgt voor consistente uitlijning */
 }
 
+/* Rode variant: alleen kleur anders! */
+.popup-btn.popup-btn-danger {
+    background: #ffdede;
+    color: #ab4636;
+    box-shadow: 0 3px 8px rgba(160, 60, 60, 0.08);
+}
+
+.popup-btn.popup-btn-danger:hover,
+.popup-btn.popup-btn-danger:focus {
+    background: #ffbdbd;
+    color: #952929;
+    outline: none;
+}
+
+/* Gedeelde hover voor alle knoppen */
 .popup-btn:hover,
 .popup-btn:focus {
-    background: #ffd740;
-    box-shadow: 0 5px 13px rgba(110, 160, 130, 0.13);
+    background: #ffe16b;
+    color: #573200;
+    outline: none;
 }
+
+/* Buttons in een nette rij */
+.popup-btn-row {
+    margin-top: 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 7px 11px;
+}
+
+
 
 .light-text,
 .card-text.light-text,
@@ -842,115 +893,4 @@ h2 {
 .popup #card-edit-form {
     text-align: right;
     /* Lijnt alle inline/inline-block elementen (knoppen) rechts uit */
-}
-
-/* STYLING VOOR DE VERWIJDERKNOP (Kaart verwijderen) */
-#delete-card-btn {
-    background: #ffebe6;
-    /* Zeer lichtroze, subtiele achtergrond */
-    color: #c0392b;
-    /* Gedempte rode tekst */
-    border: 1px solid #d66a6a;
-    /* Zachte rode rand */
-    border-radius: 8px;
-    /* Afgeronde hoeken, passend bij andere knoppen */
-    padding: 7px 11px;
-    /* Kleinere padding */
-    font-size: 0.85em;
-    /* Kleiner lettertype */
-    font-weight: normal;
-    /* Niet vetgedrukt */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    /* Subtiele schaduw */
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-top: 8px;
-    /* Ruimte boven de knop */
-    margin-left: 8px;
-    /* Ruimte tussen knoppen als ze op dezelfde regel staan */
-    display: inline-block;
-    /* Zorgt ervoor dat de breedte aan de inhoud aanpast */
-    box-sizing: border-box;
-    /* Padding en border binnen de breedte */
-    vertical-align: middle;
-    /* Voor consistente uitlijning */
-}
-
-#delete-card-btn::before {
-    content: '\2716\00a0';
-    /* Rood kruisje icoon + spatie */
-    font-family: 'Arial Unicode MS', 'Segoe UI Emoji', sans-serif;
-    /* Zorgt dat het icoon goed wordt weergegeven */
-    color: inherit;
-    /* Erft de tekstkleur van de knop */
-}
-
-#delete-card-btn:hover {
-    background: #ffdede;
-    /* Iets donkerder roze bij hover */
-    border-color: #e09090;
-    /* Donkerdere rand bij hover */
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
-    /* Iets prominentere schaduw */
-    transform: translateY(-1px);
-    /* Klein omhoog effect */
-}
-
-#delete-card-btn:active {
-    background: #ffd0d0;
-    /* Nog donkerder bij actief */
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-    /* Inset schaduw voor ingedrukt effect */
-    transform: translateY(0);
-}
-
-/* STYLING VOOR DE AFBEELDING VERWIJDEREN KNOP */
-#remove-card-img-btn {
-    background: #ffebe6;
-    /* Zelfde lichte rode achtergrond als verwijderknop */
-    color: #c0392b;
-    /* Zelfde gedempte rode tekstkleur */
-    border: 1px solid #d66a6a;
-    /* Zelfde zachte rode rand */
-    border-radius: 8px;
-    /* Zelfde afgeronde hoeken */
-    padding: 7px 11px;
-    /* Zelfde kleinere padding */
-    font-size: 0.85em;
-    /* Zelfde kleinere lettertype */
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
-    /* Zelfde subtiele schaduw */
-    cursor: pointer;
-    transition: all 0.2s ease;
-    margin-left: 8px;
-    /* Ruimte tussen knoppen */
-    display: inline-block;
-    /* Zorgt ervoor dat het zich gedraagt als een inline knop */
-    vertical-align: middle;
-    /* Voor consistente uitlijning */
-    margin-top: 6px;
-    /* Ruimte boven de knop, kan variëren afhankelijk van omringende elementen */
-}
-
-#remove-card-img-btn::before {
-    content: '\2716\00a0';
-    /* Rood kruisje icoon + spatie */
-    font-family: 'Arial Unicode MS', 'Segoe UI Emoji', sans-serif;
-    /* Zorgt dat het icoon goed wordt weergegeven */
-    color: inherit;
-    /* Erft de tekstkleur van de knop */
-}
-
-#remove-card-img-btn:hover {
-    background: #ffdede;
-    /* Iets donkerder roze bij hover */
-    border-color: #e09090;
-    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.12);
-    transform: translateY(-1px);
-}
-
-#remove-card-img-btn:active {
-    background: #ffd0d0;
-    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
-    transform: translateY(0);
 }
