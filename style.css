@@ -412,6 +412,26 @@ h2 {
     gap: 7px 11px;
 }
 
+/* Zorgt dat popup knoppen netjes op één regel blijven op mobiel */
+@media (max-width: 600px) {
+    .popup-btn-row {
+        flex-wrap: nowrap;
+        justify-content: space-between;
+        gap: 6px;
+    }
+
+    .popup-btn,
+    .popup-btn-danger {
+        flex: 1 1 0;
+        min-width: 0;
+        padding-left: 0;
+        padding-right: 0;
+        margin-right: 0;
+        margin-left: 0;
+        text-align: center;
+    }
+}
+
 
 
 .light-text,
