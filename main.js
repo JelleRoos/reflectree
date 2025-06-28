@@ -819,12 +819,11 @@ document.getElementById('import-input').addEventListener('change', async e => {
     try {
         cards = JSON.parse(text);
     } catch {
-        // Gebruik een custom modal of console.error in plaats van alert
         console.error('Ongeldig JSON-bestand ingeladen.');
-        return; // Stop verdere uitvoering
+        return;
     }
 
-    // eerst alle bestaande kaarten verwijderen (behalve de boom-onderdelen)
+    // alle bestaande kaarten verwijderen
     const cardsToRemove = [];
     scene.traverse(obj => {
         if (obj.userData && typeof obj.userData.text === 'string') {
@@ -834,11 +833,23 @@ document.getElementById('import-input').addEventListener('change', async e => {
     cardsToRemove.forEach(obj => scene.remove(obj));
 
     await document.fonts.ready;
-    // daarna opnieuw aanmaken met de opgeslagen dimensies
-    for (const card of cards) {
-        const { text, icon, color, imgData, position, quaternion, displayWidth, displayHeight } = card;
 
-        // Maak de 2D canvas texture
+    // opnieuw aanmaken, mét locked
+    for (const card of cards) {
+        // 1) destructure wél keurig locked
+        const {
+            text,
+            icon,
+            color,
+            imgData,
+            position,
+            quaternion,
+            displayWidth,
+            displayHeight,
+            locked    // ← hier lees je ‘locked’ uit het JSON-object
+        } = card;
+
+        // 2) maak de texture en mesh (ongeveer zoals je had)
         const textureCanvas = await makeCardTexture({ text, icon, color, imgData, width: 256 });
         const tex = new THREE.CanvasTexture(textureCanvas);
         tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -847,20 +858,28 @@ document.getElementById('import-input').addEventListener('change', async e => {
         tex.magFilter = THREE.LinearFilter;
         tex.needsUpdate = true;
 
-        // Maak de mesh met de opgeslagen displayWidth en displayHeight
         const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
         mesh.castShadow = mesh.receiveShadow = true;
 
-        // Positie en oriëntatie herstellen
+        // herstel positie en oriëntering
         mesh.position.fromArray(position);
         mesh.quaternion.fromArray(quaternion);
 
-        // Sla alle userData weer op
-        mesh.userData = { text, icon, color, imgData, displayWidth, displayHeight };
+        // 3) *gebruik* die locked-waarde hier in userData
+        mesh.userData = {
+            text,
+            icon,
+            color,
+            imgData,
+            displayWidth,
+            displayHeight,
+            locked    // ← én hier gebruik je ‘locked’ weer
+        };
+
         scene.add(mesh);
 
-        // Voeg de pop-in animatie en glow toe voor de geïmporteerde kaarten (optioneel, voor visueel effect)
-        mesh.scale.set(0.001, 0.001, 0.001); // Start klein voor pop-in
+        // (rest: popAnimations, glowAnimations, etc.)
+        mesh.scale.set(0.001, 0.001, 0.001);
         mesh.userData.popStart = performance.now();
         popAnimations.push(mesh);
 
@@ -873,12 +892,13 @@ document.getElementById('import-input').addEventListener('change', async e => {
         });
         const glowMesh = new THREE.Mesh(glowGeo, glowMat);
         glowMesh.position.copy(mesh.position);
-        glowMesh.lookAt(camera.position); // Zorg dat de glow ook naar de camera kijkt
+        glowMesh.lookAt(camera.position);
         glowMesh.userData.glowStart = performance.now();
         glowAnimations.push(glowMesh);
         scene.add(glowMesh);
     }
 });
+
 
 function maakAchtergrondBoom3D({
     x, z,
