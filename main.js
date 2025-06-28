@@ -204,7 +204,14 @@ addCardBtn.addEventListener('click', () => typePopup.style.display = 'flex');
 typeBtns.forEach(btn => btn.addEventListener('click', () => {
     typePopup.style.display = 'none';
     // Bij het aanmaken van een nieuwe kaart, stel de initiële userData in
-    pending3DCard = { text: '', icon: btn.dataset.icon, color: btn.dataset.color, imgData: null };
+    pending3DCard = {
+        text: '',
+        icon: btn.dataset.icon,
+        color: btn.dataset.color,
+        imgData: null,
+        locked: false   // nieuw: standaard niet vastgezet
+    };
+
 }));
 typePopup.addEventListener('click', e => { if (e.target === typePopup) typePopup.style.display = 'none'; });
 
@@ -395,7 +402,8 @@ function makeCardMesh(texture, backColor, w, h) {
  * @param {string} options.surface - Het type oppervlak waarop de kaart geplaatst wordt ('ground', 'trunk', etc.).
  * @returns {THREE.Mesh} De gemaakte 3D-kaart mesh.
  */
-async function create3DCard({ position, normal, text, icon, color, imgData, surface }) {
+async function create3DCard({ position, normal, text, icon, color, imgData, surface, locked }) {
+
     // Genereer het 2D canvas voor de texture
     const textureCanvas = await makeCardTexture({ text, icon, color, imgData, width: 256 });
     const tex = new THREE.CanvasTexture(textureCanvas);
@@ -431,7 +439,16 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
 
     // ─── Data opslaan ───
     // Sla displayWidth en displayHeight op voor export/import en dynamische bewerking
-    mesh.userData = { text, icon, color, imgData, displayWidth, displayHeight };
+    mesh.userData = {
+        text,
+        icon,
+        color,
+        imgData,
+        displayWidth,
+        displayHeight,
+        locked    // meegegeven vanuit pending3DCard
+    };
+
 
     // ─── Pop-in animatie initialiseren ───
     mesh.scale.set(0.001, 0.001, 0.001);
@@ -486,6 +503,10 @@ canvas.addEventListener('pointerdown', e => {
     const hitDrag = raycaster.intersectObjects(scene.children, true)
         .find(i => typeof i.object.userData.text === 'string');
     if (hitDrag) {
+        // nieuw: als kaart vastgezet, niet slepen
+        if (hitDrag.object.userData.locked) {
+            return;
+        }
         draggingMesh = hitDrag.object;
         dragPlane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(new THREE.Vector3()).negate(), draggingMesh.position);
         const intersect = new THREE.Vector3();
@@ -551,6 +572,8 @@ canvas.addEventListener('dblclick', e => {
     meshBeingEdited = hitEdit.object;
     editText.value = meshBeingEdited.userData.text;
     editCardIconSelect.value = meshBeingEdited.userData.icon; // Stel de waarde van de icon dropdown in
+    document.getElementById('edit-card-locked').checked =
+        meshBeingEdited.userData.locked;
     editImgUpload.value = ''; // Leeg de file input
     removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
     editPopup.style.display = 'flex';
@@ -582,6 +605,8 @@ canvas.addEventListener('touchend', function (e) {
             meshBeingEdited = hitEdit.object;
             editText.value = meshBeingEdited.userData.text;
             editCardIconSelect.value = meshBeingEdited.userData.icon; // Stel de waarde van de icon dropdown in
+            document.getElementById('edit-card-locked').checked =
+                meshBeingEdited.userData.locked;
             editImgUpload.value = '';
             removeImgBtn.style.display = meshBeingEdited.userData.imgData ? 'inline-block' : 'none';
             editPopup.style.display = 'flex';
@@ -614,6 +639,11 @@ editForm.addEventListener('submit', async event => {
     // Update tekst en icoon uit de dropdown
     meshBeingEdited.userData.text = editText.value.trim();
     meshBeingEdited.userData.icon = editCardIconSelect.value;
+
+    // nieuw: update de lock-status uit de checkbox
+    const lockedCheckbox = document.getElementById('edit-card-locked');
+    meshBeingEdited.userData.locked = lockedCheckbox.checked;
+
 
     // Update afbeelding als er een file is geselecteerd
     if (editImgUpload.files[0]) {
@@ -758,7 +788,8 @@ document.getElementById('export-btn').addEventListener('click', () => {
                 quaternion: obj.quaternion.toArray(),
                 // Exporteer de berekende breedte en hoogte
                 displayWidth: obj.userData.displayWidth,
-                displayHeight: obj.userData.displayHeight
+                displayHeight: obj.userData.displayHeight,
+                locked: obj.userData.locked
             });
         }
     });
