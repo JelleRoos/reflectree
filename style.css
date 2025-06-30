@@ -2,13 +2,6 @@
 
 @import url('https://fonts.googleapis.com/css2?family=Quicksand:wght@400;600&display=swap');
 
-/* Zet dit ONDERAAN je CSS en combineer het netjes */
-html,
-body,
-canvas {
-    font-family: 'Quicksand', sans-serif !important;
-}
-
 html,
 body {
     margin: 0;
@@ -913,4 +906,11 @@ h2 {
 .popup #card-edit-form {
     text-align: right;
     /* Lijnt alle inline/inline-block elementen (knoppen) rechts uit */
+}
+
+/* Zet dit ONDERAAN je CSS en combineer het netjes */
+html,
+body,
+canvas {
+    font-family: 'Quicksand', sans-serif !important;
 }
