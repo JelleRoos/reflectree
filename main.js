@@ -402,9 +402,12 @@ function makeCardMesh(texture, backColor, w, h) {
  * @param {string} options.surface - Het type oppervlak waarop de kaart geplaatst wordt ('ground', 'trunk', etc.).
  * @returns {THREE.Mesh} De gemaakte 3D-kaart mesh.
  */
+/**
+ * Maakt een 3D-kaart mesh en voegt deze toe aan de scene.
+ * Zorgt dat kaartjes op ‘ground’ of ‘rivier’ nooit door de grond zakken.
+ */
 async function create3DCard({ position, normal, text, icon, color, imgData, surface, locked }) {
-
-    // Genereer het 2D canvas voor de texture
+    // 1) Texture genereren
     const textureCanvas = await makeCardTexture({ text, icon, color, imgData, width: 256 });
     const tex = new THREE.CanvasTexture(textureCanvas);
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
@@ -413,59 +416,52 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
     tex.magFilter = THREE.LinearFilter;
     tex.needsUpdate = true;
 
-    const displayWidth = 1.5; // Vaste breedte voor de 3D-kaart
-    // Bereken de 3D-hoogte op basis van de aspect ratio van het 2D canvas
+    // 2) Afmetingen berekenen
+    const displayWidth = 1.5;
     const displayHeight = (textureCanvas.height / textureCanvas.width) * displayWidth;
+    const halfHeight = displayHeight / 2;
+    const minMargin = 0.05; // 5cm boven oppervlak
 
-    // Maak de 3D-mesh met de berekende afmetingen
+    // 3) Mesh aanmaken
     const mesh = makeCardMesh(tex, color, displayWidth, displayHeight);
     mesh.castShadow = mesh.receiveShadow = true;
+    mesh.userData = { text, icon, color, imgData, displayWidth, displayHeight, locked };
 
-    // ─── Positioneren en oriënteren ───
-    mesh.position.copy(position).add(normal.clone().multiplyScalar(0.01));
+    // 4) Positie & oriëntatie
     if (surface === 'ground' || surface === 'rivier') {
+        // XZ precies op hit, Y zo dat onderkant minstens minMargin boven grond zit
+        mesh.position.set(
+            position.x,
+            position.y + halfHeight + minMargin,
+            position.z
+        );
         mesh.rotation.set(0, 0, 0);
-        mesh.position.y += 0.2;
-        // Billboard naar camera
-        const target = new THREE.Vector3(
+        // billboard naar camera
+        mesh.lookAt(new THREE.Vector3(
             camera.position.x,
             mesh.position.y,
             camera.position.z
-        );
-        mesh.lookAt(target);
+        ));
     } else {
-        mesh.lookAt(position.clone().add(normal));
+        // klein offsetje op andere oppervlakken
+        const base = position.clone().add(normal.clone().multiplyScalar(0.01));
+        mesh.position.set(base.x, base.y + halfHeight + minMargin, base.z);
+
+        // horizontale vlakken → billboard; anders tegen normale richten
+        if (Math.abs(normal.y) > 0.9) {
+            mesh.up.set(0, 1, 0);
+            mesh.lookAt(new THREE.Vector3(camera.position.x, mesh.position.y, camera.position.z));
+        } else {
+            mesh.lookAt(position.clone().add(normal));
+        }
     }
 
-    // ─── Data opslaan ───
-    // Sla displayWidth en displayHeight op voor export/import en dynamische bewerking
-    mesh.userData = {
-        text,
-        icon,
-        color,
-        imgData,
-        displayWidth,
-        displayHeight,
-        locked    // meegegeven vanuit pending3DCard
-    };
-
-
-    // ─── Pop-in animatie initialiseren ───
-    mesh.scale.set(0.001, 0.001, 0.001);
-    mesh.userData.popStart = performance.now();
+    // 5) Toevoegen & animaties
+    scene.add(mesh);
     popAnimations.push(mesh);
 
-    // ─── Mesh toevoegen ───
-    scene.add(mesh);
-
-    // ─── Glow-outline toevoegen ───
     const glowGeo = new THREE.RingGeometry(displayWidth * 0.6, displayWidth * 1.1, 32);
-    const glowMat = new THREE.MeshBasicMaterial({
-        color,
-        transparent: true,
-        opacity: 0.6,
-        side: THREE.DoubleSide
-    });
+    const glowMat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
     const glowMesh = new THREE.Mesh(glowGeo, glowMat);
     glowMesh.position.copy(mesh.position);
     glowMesh.lookAt(camera.position);
@@ -475,6 +471,7 @@ async function create3DCard({ position, normal, text, icon, color, imgData, surf
 
     return mesh;
 }
+
 
 
 // Pointer events
@@ -514,51 +511,44 @@ canvas.addEventListener('pointerdown', e => {
         dragOffset.copy(intersect).sub(draggingMesh.position);
     }
 });
+// Pointer-move handler met ground-clipping fix
 window.addEventListener('pointermove', e => {
     if (!draggingMesh) return;
 
-    // update pointer en raycaster
+    // update pointer & raycaster
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
     pointer.y = -(e.clientY / window.innerHeight) * 2 + 1;
     raycaster.setFromCamera(pointer, camera);
 
-    // raycast tegen oppervlakken
     const hit = raycaster.intersectObjects(scene.children, true)
         .find(i => ['trunk', 'root', 'canopy', 'ground', 'rivier']
             .includes(i.object.userData.surface));
     if (!hit) return;
 
     const surface = hit.object.userData.surface;
-    const norm = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
-    const newPos = hit.point.clone().add(norm.clone().multiplyScalar(0.01));
+    const normal = hit.face.normal.clone().transformDirection(hit.object.matrixWorld);
+    const newPos = hit.point.clone().add(normal.clone().multiplyScalar(0.01));
+    const halfH = draggingMesh.userData.displayHeight / 2;
+    const margin = 0.05; // 5cm
 
     if (surface === 'ground' || surface === 'rivier') {
-        // rechtop en iets omhoog
+        // Y zo instellen dat kaart nooit onder grond komt
+        const y = hit.point.y + normal.y * 0.01 + halfH + margin;
+        draggingMesh.position.set(newPos.x, y, newPos.z);
         draggingMesh.rotation.set(0, 0, 0);
-        newPos.y += 0.2;
-
-        // billboard naar camera
-        const camTarget = new THREE.Vector3(
-            camera.position.x,
-            newPos.y,
-            camera.position.z
-        );
-        draggingMesh.lookAt(camTarget);
-
+        draggingMesh.lookAt(new THREE.Vector3(camera.position.x, y, camera.position.z));
     } else {
-        // bestaande orientatie op stam/tak/etc.
-        if (Math.abs(norm.y) > 0.9) {
+        // bestaande logica voor stam/takken/bladeren
+        if (Math.abs(normal.y) > 0.9) {
             draggingMesh.up.set(0, 1, 0);
-            draggingMesh.lookAt(
-                new THREE.Vector3(camera.position.x, newPos.y, camera.position.z)
-            );
+            draggingMesh.lookAt(new THREE.Vector3(camera.position.x, newPos.y, camera.position.z));
         } else {
-            draggingMesh.lookAt(newPos.clone().add(norm));
+            draggingMesh.lookAt(newPos.clone().add(normal));
         }
+        draggingMesh.position.copy(newPos);
     }
-
-    draggingMesh.position.copy(newPos);
 });
+
 
 
 canvas.addEventListener('pointerup', () => draggingMesh = null);
