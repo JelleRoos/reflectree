@@ -550,7 +550,6 @@ window.addEventListener('pointermove', e => {
 });
 
 
-
 canvas.addEventListener('pointerup', () => draggingMesh = null);
 canvas.addEventListener('dblclick', e => {
     pointer.x = (e.clientX / window.innerWidth) * 2 - 1;
